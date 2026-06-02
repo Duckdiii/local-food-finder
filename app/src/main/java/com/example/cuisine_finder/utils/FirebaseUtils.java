@@ -14,6 +14,7 @@ public class FirebaseUtils {
         user1.setId("mock_user_1");
         user1.setFullName("Nguyễn Văn An");
         user1.setEmail("an.nguyen@example.com");
+        user1.setPassword("123456");
         user1.setRole("USER");
         user1.setActive(true);
         user1.setCreatedAt(System.currentTimeMillis());
@@ -23,6 +24,7 @@ public class FirebaseUtils {
         admin.setId("mock_admin_1");
         admin.setFullName("Admin Cuisine");
         admin.setEmail("admin@cuisinefinder.com");
+        admin.setPassword("admin123");
         admin.setRole("ADMIN");
         admin.setActive(true);
         admin.setCreatedAt(System.currentTimeMillis());

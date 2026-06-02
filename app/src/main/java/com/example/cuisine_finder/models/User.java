@@ -30,6 +30,9 @@ public class User {
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+
     public int getExploredCount() { return exploredCount; }
     public void setExploredCount(int exploredCount) { this.exploredCount = exploredCount; }
 

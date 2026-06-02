@@ -65,7 +65,7 @@ public class SignUpFragment extends Fragment {
             if (task.isSuccessful()) {
                 FirebaseUser firebaseUser = authService.getCurrentUser();
                 if (firebaseUser != null) {
-                    saveUserToFirestore(firebaseUser.getUid(), firstName + " " + lastName, email);
+                    saveUserToFirestore(firebaseUser.getUid(), firstName + " " + lastName, email, password);
                 }
             } else {
                 Toast.makeText(getContext(), "Đăng ký thất bại: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
@@ -73,11 +73,12 @@ public class SignUpFragment extends Fragment {
         });
     }
 
-    private void saveUserToFirestore(String userId, String fullName, String email) {
+    private void saveUserToFirestore(String userId, String fullName, String email, String password) {
         User user = new User();
         user.setId(userId);
         user.setFullName(fullName);
         user.setEmail(email);
+        user.setPassword(password);
         user.setRole("USER");
         user.setActive(true);
         user.setCreatedAt(System.currentTimeMillis());

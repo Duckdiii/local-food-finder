@@ -24,9 +24,6 @@ public class MainActivity extends AppCompatActivity {
 
         authService = new AuthService();
 
-        // Push mock data once (optional)
-        // com.example.cuisine_finder.utils.FirebaseUtils.pushMockUsers();
-
         BottomNavigationView bottomNav = findViewById(R.id.bottomNavigation);
         
         // Load default fragment
