@@ -16,6 +16,7 @@ public class FoodPlace {
     private String closeTime;
     private boolean openLate;
     private String priceRange; // CHEAP, MEDIUM, EXPENSIVE
+    private double totalRating;
     private double averageRating;
     private int reviewCount;
     private int favoriteCount;
@@ -67,6 +68,9 @@ public class FoodPlace {
 
     public String getPriceRange() { return priceRange; }
     public void setPriceRange(String priceRange) { this.priceRange = priceRange; }
+
+    public double getTotalRating() { return totalRating; }
+    public void setTotalRating(double totalRating) { this.totalRating = totalRating; }
 
     public double getAverageRating() { return averageRating; }
     public void setAverageRating(double averageRating) { this.averageRating = averageRating; }
