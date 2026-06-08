@@ -12,6 +12,8 @@ import com.example.cuisine_finder.SignInFragment;
 import com.example.cuisine_finder.R;
 import com.example.cuisine_finder.services.AuthService;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import org.osmdroid.config.Configuration;
+import android.preference.PreferenceManager;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -20,6 +22,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Load/initialize the osmdroid configuration
+        Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this));
+
         setContentView(R.layout.activity_main);
 
         authService = new AuthService();

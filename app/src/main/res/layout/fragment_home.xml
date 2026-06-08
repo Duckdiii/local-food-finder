@@ -82,12 +82,14 @@
                 android:textSize="16sp" />
 
             <EditText
+                android:id="@+id/etHomeSearch"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
                 android:background="@android:color/transparent"
                 android:hint="Tìm quán, món ăn, địa chỉ..."
+                android:imeOptions="actionSearch"
                 android:singleLine="true"
                 android:textSize="13sp" />
         </LinearLayout>
