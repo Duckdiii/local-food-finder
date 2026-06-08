@@ -6,10 +6,16 @@
     android:background="@drawable/bg_card">
 
     <ImageView
+        android:id="@+id/ivFeaturedFood"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
-        android:src="@drawable/ic_launcher_background" />
+        android:src="@drawable/bg_image_placeholder" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_image_overlay" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -19,6 +25,7 @@
         android:padding="14dp">
 
         <TextView
+            android:id="@+id/tvFeaturedTag"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_chip_orange"
@@ -26,23 +33,25 @@
             android:paddingEnd="10dp"
             android:paddingTop="4dp"
             android:paddingBottom="4dp"
-            android:text="Hot hôm nay"
+            android:text="Nổi bật"
             android:textColor="@color/white"
             android:textSize="11sp" />
 
         <TextView
+            android:id="@+id/tvFeaturedFoodName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Phở Bò Nam Định"
+            android:text="Tên món ăn"
             android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/tvFeaturedFoodRating"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="⭐ 4.9 · 1.2km · 15 phút"
+            android:text="⭐ 5.0"
             android:textColor="@color/white"
             android:textSize="12sp" />
     </LinearLayout>

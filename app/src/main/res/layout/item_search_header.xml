@@ -2,24 +2,50 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingTop="16dp"
-    android:paddingBottom="8dp"
-    android:paddingStart="4dp">
+    android:layout_marginTop="10dp"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/bg_card"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="14dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvHeaderTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Món ăn"
+            android:textColor="@color/text_dark"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvHeaderCaption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:text="Các kết quả phù hợp"
+            android:textColor="@color/text_gray"
+            android:textSize="11sp" />
+    </LinearLayout>
 
     <TextView
-        android:id="@+id/tvHeaderTitle"
+        android:id="@+id/tvHeaderCount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Tiêu đề"
-        android:textColor="@color/orange_main"
-        android:textSize="16sp"
+        android:background="@drawable/bg_chip_orange"
+        android:paddingStart="10dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="6dp"
+        android:text="0"
+        android:textColor="@color/white"
+        android:textSize="11sp"
         android:textStyle="bold" />
-
-    <View
-        android:layout_width="40dp"
-        android:layout_height="3dp"
-        android:layout_marginTop="4dp"
-        android:background="@color/orange_main" />
 
 </LinearLayout>

@@ -66,20 +66,11 @@ public class ExploreFragment extends Fragment {
     private void setupSearch() {
         etSearch.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                navigateToSearchResult(etSearch.getText().toString());
+                performSearch(etSearch.getText().toString());
                 return true;
             }
             return false;
         });
-    }
-
-    private void navigateToSearchResult(String query) {
-        if (query.isEmpty()) return;
-
-        getParentFragmentManager().beginTransaction()
-                .replace(R.id.fragmentContainer, SearchResultFragment.newInstance(query))
-                .addToBackStack(null)
-                .commit();
     }
 
     private void setupZoomControls() {

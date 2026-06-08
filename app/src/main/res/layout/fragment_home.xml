@@ -124,17 +124,11 @@
             android:layout_marginTop="10dp"
             android:scrollbars="none">
 
-            <LinearLayout
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvFriendsEating"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <include layout="@layout/item_friend_avatar" />
-                <include layout="@layout/item_friend_avatar" />
-                <include layout="@layout/item_friend_avatar" />
-                <include layout="@layout/item_friend_avatar" />
-                <include layout="@layout/item_friend_avatar" />
-            </LinearLayout>
+                android:orientation="horizontal" />
         </HorizontalScrollView>
 
         <TextView
@@ -152,17 +146,11 @@
             android:layout_marginTop="10dp"
             android:scrollbars="none">
 
-            <LinearLayout
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvFoodCategories"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <include layout="@layout/item_food_category" />
-                <include layout="@layout/item_food_category" />
-                <include layout="@layout/item_food_category" />
-                <include layout="@layout/item_food_category" />
-                <include layout="@layout/item_food_category" />
-            </LinearLayout>
+                android:orientation="horizontal" />
         </HorizontalScrollView>
 
         <LinearLayout
@@ -195,14 +183,11 @@
             android:layout_marginTop="10dp"
             android:scrollbars="none">
 
-            <LinearLayout
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvFeaturedFood"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <include layout="@layout/item_featured_food" />
-                <include layout="@layout/item_featured_food" />
-            </LinearLayout>
+                android:orientation="horizontal" />
         </HorizontalScrollView>
 
         <LinearLayout
