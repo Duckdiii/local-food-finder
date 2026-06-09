@@ -12,4 +12,12 @@ public class PlaceRepository {
     public Query getPlacesByUser(String userId) {
         return placesRef.whereEqualTo("createdBy", userId);
     }
+
+    public Query getApprovedPlaces() {
+        return placesRef.whereEqualTo("status", "APPROVED").limit(100);
+    }
+
+    public Query getAllPlaces() {
+        return placesRef.limit(100);
+    }
 }

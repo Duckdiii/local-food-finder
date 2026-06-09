@@ -1,5 +1,7 @@
 package com.example.cuisine_finder.activities;
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -35,6 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FoodPlaceDetailActivity extends AppCompatActivity {
+    public static final String EXTRA_PLACE_ID = "placeId";
 
     private ImageView ivPlaceImage;
     private TextView tvPlaceName, tvStatus, tvRating, tvReviewCount, tvFoodType;
@@ -79,11 +82,13 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         handleWindowInsets();
         
         // Fetch real data from Firestore
-        String placeId = "place_banh_mi_chao_hcmute";
+        String placeId = getIntent().getStringExtra(EXTRA_PLACE_ID);
+        if (placeId == null) placeId = getIntent().getStringExtra("PLACE_ID");
+        if (placeId == null) placeId = "place_banh_mi_chao_hcmute";
         loadPlaceFromFirestore(placeId);
-        checkStatus();
 
         setupClickListeners();
+        setupChatShare();
     }
 
     private void handleWindowInsets() {
@@ -151,6 +156,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
                             currentPlace.setId(documentSnapshot.getId());
                             loadPlaceDetails(currentPlace);
                             loadReviews(); // Load reviews after we have the place
+                            checkStatus();
                         }
                     }
                 });
@@ -258,6 +264,32 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         btnShare.setOnClickListener(v -> Toast.makeText(this, "Chia sẻ địa điểm này", Toast.LENGTH_SHORT).show());
         btnCall.setOnClickListener(v -> Toast.makeText(this, "Đang gọi hotline quán...", Toast.LENGTH_SHORT).show());
         btnOrder.setOnClickListener(v -> Toast.makeText(this, "Chuyển đến màn hình đặt món", Toast.LENGTH_SHORT).show());
+    }
+
+    private void setupChatShare() {
+        btnShare.setOnClickListener(view -> {
+            if (currentPlace == null) {
+                Toast.makeText(this, "Thông tin quán chưa tải xong", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            android.content.SharedPreferences preferences = getSharedPreferences("chat_settings", Context.MODE_PRIVATE);
+            String roomId = preferences.getString("last_room_id", null);
+            String roomName = preferences.getString("last_room_name", null);
+            if (roomId == null || roomName == null) {
+                Toast.makeText(this, "Hãy vào tab Cộng đồng để chọn phòng chat trước", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Intent intent = new Intent(this, ChatRoomActivity.class);
+            intent.putExtra(ChatRoomActivity.EXTRA_ROOM_ID, roomId);
+            intent.putExtra(ChatRoomActivity.EXTRA_ROOM_NAME, roomName);
+            intent.putExtra(ChatRoomActivity.EXTRA_RESTAURANT_ID, currentPlace.getId());
+            intent.putExtra(ChatRoomActivity.EXTRA_RESTAURANT_NAME, currentPlace.getName());
+            intent.putExtra(ChatRoomActivity.EXTRA_RESTAURANT_RATING, currentPlace.getAverageRating());
+            if (currentPlace.getImageUrls() != null && !currentPlace.getImageUrls().isEmpty()) {
+                intent.putExtra(ChatRoomActivity.EXTRA_RESTAURANT_IMAGE, currentPlace.getImageUrls().get(0));
+            }
+            startActivity(intent);
+        });
     }
 
     private void toggleFavorite() {
