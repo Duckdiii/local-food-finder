@@ -31,6 +31,7 @@ public class CommunityPostAdapter extends RecyclerView.Adapter<CommunityPostAdap
         void onShareClicked(CommunityPost post);
         void onPlaceClicked(CommunityPost post);
         void onTagClicked(String tag);
+        void onReportClicked(CommunityPost post);
     }
 
     private final List<CommunityPost> posts = new ArrayList<>();
@@ -106,6 +107,7 @@ public class CommunityPostAdapter extends RecyclerView.Adapter<CommunityPostAdap
         private final TextView btnComment;
         private final TextView tvCommentCount;
         private final TextView btnShare;
+        private final TextView btnMore;
 
         PostViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -130,6 +132,7 @@ public class CommunityPostAdapter extends RecyclerView.Adapter<CommunityPostAdap
             btnComment = itemView.findViewById(R.id.btnPostComment);
             tvCommentCount = itemView.findViewById(R.id.tvPostCommentCount);
             btnShare = itemView.findViewById(R.id.btnPostShare);
+            btnMore = itemView.findViewById(R.id.btnPostMore);
         }
 
         void bind(CommunityPost post) {
@@ -260,6 +263,7 @@ public class CommunityPostAdapter extends RecyclerView.Adapter<CommunityPostAdap
             tvCommentCount.setOnClickListener(commentClick);
 
             btnShare.setOnClickListener(v -> listener.onShareClicked(post));
+            btnMore.setOnClickListener(v -> listener.onReportClicked(post));
         }
 
         private boolean hasPlaceInfo(CommunityPost post) {

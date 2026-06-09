@@ -28,6 +28,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.cuisine_finder.activities.FoodPlaceDetailActivity;
+import com.example.cuisine_finder.activities.CommunityChatRoomsActivity;
 import com.example.cuisine_finder.adapters.CommunityCommentAdapter;
 import com.example.cuisine_finder.adapters.CommunityPostAdapter;
 import com.example.cuisine_finder.models.CommunityComment;
@@ -176,6 +177,11 @@ public class CommunityFragment extends Fragment {
                 setActiveTab(currentFilter);
                 applyFilter();
             }
+
+            @Override
+            public void onReportClicked(CommunityPost post) {
+                showReportPostDialog(post);
+            }
         });
         postAdapter.setCurrentUserId(currentUserId);
         rvCommunityPosts.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -185,6 +191,8 @@ public class CommunityFragment extends Fragment {
     private void setupActions(View view) {
         view.findViewById(R.id.btnCommunitySearch).setOnClickListener(v -> showSearchDialog());
         view.findViewById(R.id.btnCommunityCompose).setOnClickListener(v -> showCreatePostDialog());
+        view.findViewById(R.id.btnCommunityChatRooms).setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), CommunityChatRoomsActivity.class)));
 
         view.findViewById(R.id.btnFeaturedTab).setOnClickListener(v -> {
             currentFilter = FeedFilter.FEATURED;
@@ -361,6 +369,30 @@ public class CommunityFragment extends Fragment {
                     postAdapter.applyOptimisticLike(post.getId(), currentUserId, !nextLikedState);
                     Toast.makeText(requireContext(), "Không cập nhật được lượt thích", Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    private void showReportPostDialog(CommunityPost post) {
+        if (currentUserId == null) {
+            Toast.makeText(requireContext(), "Vui lòng đăng nhập để báo cáo bài viết", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (currentUserId.equals(post.getAuthorId())) {
+            Toast.makeText(requireContext(), "Bạn không thể báo cáo bài viết của chính mình", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String[] labels = {"Spam", "Nội dung không phù hợp", "Thông tin sai lệch"};
+        String[] reasons = {"spam", "inappropriate", "misinformation"};
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Báo cáo bài viết")
+                .setItems(labels, (dialog, which) ->
+                        communityRepository.reportPost(post.getId(), currentUserId, reasons[which])
+                                .addOnSuccessListener(unused ->
+                                        Toast.makeText(requireContext(), "Đã gửi báo cáo bài viết", Toast.LENGTH_SHORT).show())
+                                .addOnFailureListener(error ->
+                                        Toast.makeText(requireContext(), "Không thể báo cáo bài viết", Toast.LENGTH_SHORT).show()))
+                .setNegativeButton("Huỷ", null)
+                .show();
     }
 
     private void showComments(CommunityPost post) {

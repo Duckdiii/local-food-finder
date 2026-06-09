@@ -41,13 +41,46 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.RoomVi
     @Override
     public void onBindViewHolder(@NonNull RoomViewHolder holder, int position) {
         ChatRoom room = rooms.get(position);
-        holder.name.setText(room.getName());
+        holder.name.setText(displayName(room.getId()));
+        holder.description.setText(description(room.getId()));
+        holder.icon.setText(icon(room.getId()));
         holder.lastMessage.setText(room.getLastMessage() == null || room.getLastMessage().isEmpty()
                 ? "Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện."
                 : room.getLastMessage());
-        holder.members.setText(room.getMemberCount() + " thành viên");
-        holder.time.setText(room.getLastMessageAt() == 0 ? "" : DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date(room.getLastMessageAt())));
+        holder.members.setText(room.getMemberCount() > 0
+                ? room.getMemberCount() + " thành viên"
+                : "Phòng chat cộng đồng");
+        holder.time.setText(room.getLastMessageAt() == 0
+                ? ""
+                : DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date(room.getLastMessageAt())));
         holder.itemView.setOnClickListener(v -> listener.onRoomClick(room));
+    }
+
+    public static String displayName(String roomId) {
+        if (roomId != null && roomId.startsWith("room_")) roomId = roomId.substring(5);
+        if ("hcmute".equals(roomId)) return "Cộng đồng HCMUTE";
+        if ("night_food".equals(roomId)) return "Hội ăn đêm";
+        if ("saigon_food".equals(roomId)) return "Ẩm thực Sài Gòn";
+        if ("thu_duc_night".equals(roomId)) return "Ăn khuya Thủ Đức";
+        return roomId == null ? "Phòng cộng đồng" : roomId;
+    }
+
+    private String description(String roomId) {
+        if (roomId != null && roomId.startsWith("room_")) roomId = roomId.substring(5);
+        if ("hcmute".equals(roomId)) return "Chuyện ăn uống quanh trường HCMUTE";
+        if ("night_food".equals(roomId)) return "Gợi ý món ngon và quán mở muộn";
+        if ("saigon_food".equals(roomId)) return "Khám phá món ngon khắp Sài Gòn";
+        if ("thu_duc_night".equals(roomId)) return "Điểm ăn khuya quanh khu vực Thủ Đức";
+        return "Trò chuyện cùng cộng đồng";
+    }
+
+    private String icon(String roomId) {
+        if (roomId != null && roomId.startsWith("room_")) roomId = roomId.substring(5);
+        if ("hcmute".equals(roomId)) return "🎓";
+        if ("night_food".equals(roomId)) return "🌙";
+        if ("saigon_food".equals(roomId)) return "🍜";
+        if ("thu_duc_night".equals(roomId)) return "🍢";
+        return "💬";
     }
 
     @Override
@@ -57,6 +90,8 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.RoomVi
 
     static class RoomViewHolder extends RecyclerView.ViewHolder {
         final TextView name;
+        final TextView description;
+        final TextView icon;
         final TextView lastMessage;
         final TextView members;
         final TextView time;
@@ -64,6 +99,8 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.RoomVi
         RoomViewHolder(View itemView) {
             super(itemView);
             name = itemView.findViewById(R.id.tvRoomName);
+            description = itemView.findViewById(R.id.tvRoomDescription);
+            icon = itemView.findViewById(R.id.tvRoomIcon);
             lastMessage = itemView.findViewById(R.id.tvRoomLastMessage);
             members = itemView.findViewById(R.id.tvRoomMembers);
             time = itemView.findViewById(R.id.tvRoomTime);

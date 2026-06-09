@@ -33,6 +33,10 @@
             android:name=".activities.ChatRoomActivity"
             android:exported="false"
             android:theme="@style/Theme.Cuisine_finder" />
+        <activity
+            android:name=".activities.CommunityChatRoomsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
     </application>
 
 </manifest>

@@ -4,7 +4,7 @@ public class Report {
     private String id;
     private String reporterId;
     private String targetId;
-    private String targetType; // PLACE, REVIEW, MESSAGE
+    private String targetType; // POST, MESSAGE
     private String reason;
     private String description;
     private String status; // PENDING, RESOLVED, REJECTED

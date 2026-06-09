@@ -22,6 +22,10 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.cuisine_finder.R;
@@ -71,7 +75,14 @@ public class ChatRoomActivity extends AppCompatActivity implements ChatMessageAd
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         setContentView(R.layout.activity_chat_room);
+        View root = findViewById(R.id.chatRoomRoot);
+        ViewCompat.setOnApplyWindowInsetsListener(root, (view, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom);
+            return windowInsets;
+        });
         roomId = getIntent().getStringExtra(EXTRA_ROOM_ID);
         user = FirebaseAuth.getInstance().getCurrentUser();
         if (roomId == null || user == null) {
@@ -83,7 +94,6 @@ public class ChatRoomActivity extends AppCompatActivity implements ChatMessageAd
         cache = new ChatCache(this);
         String roomName = getIntent().getStringExtra(EXTRA_ROOM_NAME);
         ((TextView) findViewById(R.id.tvChatTitle)).setText(roomName);
-        if (roomName != null) repository.ensureDistrictRoom(roomName);
         findViewById(R.id.btnChatBack).setOnClickListener(view -> finish());
         input = findViewById(R.id.etChatMessage);
         connectionBanner = findViewById(R.id.tvConnectionBanner);
@@ -294,8 +304,12 @@ public class ChatRoomActivity extends AppCompatActivity implements ChatMessageAd
     @Override
     public void onLongClick(ChatMessage message) {
         if (message.getId() == null || message.getId().startsWith("local-")) return;
+        if (user.getUid().equals(message.getSenderId())) {
+            Toast.makeText(this, "Bạn không thể báo cáo tin nhắn của chính mình", Toast.LENGTH_SHORT).show();
+            return;
+        }
         new AlertDialog.Builder(this)
-                .setTitle("Báo cáo tin nhắn")
+                .setTitle("Báo cáo tin nhắn không phù hợp")
                 .setItems(new String[]{"Spam", "Nội dung không phù hợp", "Thông tin sai lệch"}, (dialog, which) ->
                         repository.reportMessage(roomId, message.getId(), user.getUid(),
                                         new String[]{"spam", "inappropriate", "misinformation"}[which])
@@ -303,6 +317,7 @@ public class ChatRoomActivity extends AppCompatActivity implements ChatMessageAd
                                         Toast.makeText(this, "Đã báo cáo tin nhắn", Toast.LENGTH_SHORT).show())
                                 .addOnFailureListener(error ->
                                         Toast.makeText(this, "Không thể báo cáo tin nhắn", Toast.LENGTH_SHORT).show()))
+                .setNegativeButton("Huỷ", null)
                 .show();
     }
 

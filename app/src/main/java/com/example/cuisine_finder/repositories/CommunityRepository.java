@@ -122,6 +122,27 @@ public class CommunityRepository {
         return batch.commit();
     }
 
+    public Task<Void> reportPost(String postId, String userId, String reason) {
+        DocumentReference postRef = postsRef.document(postId);
+        DocumentReference reportRef = db.collection("reports")
+                .document("POST_" + postId + "_" + userId);
+        return db.runTransaction(transaction -> {
+            if (transaction.get(reportRef).exists()) return null;
+
+            Map<String, Object> report = new HashMap<>();
+            report.put("reporterId", userId);
+            report.put("targetId", postId);
+            report.put("targetType", "POST");
+            report.put("reason", reason);
+            report.put("status", "PENDING");
+            report.put("createdAt", System.currentTimeMillis());
+
+            transaction.set(reportRef, report);
+            transaction.update(postRef, "reportCount", FieldValue.increment(1));
+            return null;
+        });
+    }
+
     public Task<Void> removeLegacyMockPosts() {
         WriteBatch batch = db.batch();
         batch.delete(postsRef.document("seed_bun_bo_le_van_sy"));
