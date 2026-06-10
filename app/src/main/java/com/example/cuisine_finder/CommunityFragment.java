@@ -31,6 +31,7 @@ import com.example.cuisine_finder.activities.FoodPlaceDetailActivity;
 import com.example.cuisine_finder.activities.CommunityChatRoomsActivity;
 import com.example.cuisine_finder.adapters.CommunityCommentAdapter;
 import com.example.cuisine_finder.adapters.CommunityPostAdapter;
+import com.example.cuisine_finder.adapters.ExistingPlacePickerAdapter;
 import com.example.cuisine_finder.models.CommunityComment;
 import com.example.cuisine_finder.models.CommunityPost;
 import com.example.cuisine_finder.models.FoodPlace;
@@ -621,33 +622,62 @@ public class CommunityFragment extends Fragment {
                         return;
                     }
 
-                    String[] labels = new String[places.size()];
-                    for (int i = 0; i < places.size(); i++) {
-                        FoodPlace place = places.get(i);
-                        String address = TextUtils.isEmpty(place.getAddress()) ? "Chưa có địa chỉ" : place.getAddress();
-                        labels[i] = place.getName() + "\n" + address;
-                    }
-
-                    new AlertDialog.Builder(requireContext())
-                            .setTitle("Chọn quán đã có trên app")
-                            .setItems(labels, (pickerDialog, which) -> {
-                                FoodPlace selected = places.get(which);
-                                selectedPlaceHolder[0] = selected;
-                                String address = TextUtils.isEmpty(selected.getAddress())
-                                        ? "Chưa có địa chỉ"
-                                        : selected.getAddress();
-                                selectedPlaceText.setText(selected.getName() + "\n" + address);
-                                selectedPlaceText.setTextColor(
-                                        ContextCompat.getColor(requireContext(), R.color.text_dark)
-                                );
-                            })
-                            .setNegativeButton("Huỷ", null)
-                            .show();
+                    showPlacePickerDialog(places, selectedPlaceHolder, selectedPlaceText);
                 })
                 .addOnFailureListener(error -> {
                     selectedPlaceText.setText("Không tải được danh sách quán");
                     Toast.makeText(requireContext(), "Không tải được danh sách quán", Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    private void showPlacePickerDialog(
+            List<FoodPlace> places,
+            FoodPlace[] selectedPlaceHolder,
+            TextView selectedPlaceText
+    ) {
+        View pickerView = getLayoutInflater().inflate(R.layout.dialog_existing_place_picker, null);
+        EditText searchInput = pickerView.findViewById(R.id.etSearchExistingPlace);
+        TextView resultCount = pickerView.findViewById(R.id.tvPlacePickerCount);
+        TextView emptyState = pickerView.findViewById(R.id.tvPlacePickerEmpty);
+        RecyclerView placesView = pickerView.findViewById(R.id.rvExistingPlaces);
+        AlertDialog pickerDialog = new AlertDialog.Builder(requireContext())
+                .setView(pickerView)
+                .create();
+
+        ExistingPlacePickerAdapter pickerAdapter = new ExistingPlacePickerAdapter(places, selected -> {
+            selectedPlaceHolder[0] = selected;
+            String address = TextUtils.isEmpty(selected.getAddress())
+                    ? "Chưa có địa chỉ"
+                    : selected.getAddress();
+            selectedPlaceText.setText(selected.getName() + "\n" + address);
+            selectedPlaceText.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_dark));
+            pickerDialog.dismiss();
+        });
+        placesView.setLayoutManager(new LinearLayoutManager(requireContext()));
+        placesView.setAdapter(pickerAdapter);
+        updatePlacePickerState(places.size(), resultCount, emptyState, placesView);
+
+        searchInput.addTextChangedListener(new SimpleTextWatcher() {
+            @Override
+            public void afterTextChanged(Editable editable) {
+                int count = pickerAdapter.filter(editable.toString());
+                updatePlacePickerState(count, resultCount, emptyState, placesView);
+            }
+        });
+        pickerView.findViewById(R.id.btnClosePlacePicker).setOnClickListener(view -> pickerDialog.dismiss());
+        pickerDialog.setOnShowListener(dialog -> searchInput.requestFocus());
+        pickerDialog.show();
+    }
+
+    private void updatePlacePickerState(
+            int count,
+            TextView resultCount,
+            TextView emptyState,
+            RecyclerView placesView
+    ) {
+        resultCount.setText(count + " quán phù hợp");
+        emptyState.setVisibility(count == 0 ? View.VISIBLE : View.GONE);
+        placesView.setVisibility(count == 0 ? View.GONE : View.VISIBLE);
     }
 
     private boolean hasDraft(EditText... fields) {
