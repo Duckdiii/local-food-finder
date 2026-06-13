@@ -9,7 +9,11 @@
 /.idea/assetWizardSettings.xml
 .DS_Store
 /build
+app/build/
 /captures
 .externalNativeBuild
 .cxx
 local.properties
+app/google-services.json
+app/src/main/java/com/example/cuisine_finder/utils/FirebaseUtils.java
+Part2.md

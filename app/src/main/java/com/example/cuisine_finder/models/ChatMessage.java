@@ -1,15 +1,28 @@
 package com.example.cuisine_finder.models;
 
 public class ChatMessage {
+    public static final String TYPE_TEXT = "text";
+    public static final String TYPE_IMAGE = "image";
+    public static final String TYPE_RESTAURANT_CARD = "restaurant_card";
+    public static final String STATE_SENDING = "sending";
+    public static final String STATE_SENT = "sent";
+
     private String id;
     private String roomId;
     private String senderId;
     private String senderName;
-    private String senderAvatarUrl;
-    private String message;
-    private String imageUrl;
-    private String type; // TEXT, IMAGE
+    private String senderAvatar;
+    private String content;
+    private String attachmentUrl;
+    private String restaurantId;
+    private String restaurantName;
+    private String restaurantImageUrl;
+    private double restaurantRating;
+    private String type;
+    private String deliveryState;
     private long createdAt;
+    private boolean isDeleted;
+    private int reportCount;
 
     public ChatMessage() {
     }
@@ -26,18 +39,39 @@ public class ChatMessage {
     public String getSenderName() { return senderName; }
     public void setSenderName(String senderName) { this.senderName = senderName; }
 
-    public String getSenderAvatarUrl() { return senderAvatarUrl; }
-    public void setSenderAvatarUrl(String senderAvatarUrl) { this.senderAvatarUrl = senderAvatarUrl; }
+    public String getSenderAvatar() { return senderAvatar; }
+    public void setSenderAvatar(String senderAvatar) { this.senderAvatar = senderAvatar; }
 
-    public String getMessage() { return message; }
-    public void setMessage(String message) { this.message = message; }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
 
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public String getAttachmentUrl() { return attachmentUrl; }
+    public void setAttachmentUrl(String attachmentUrl) { this.attachmentUrl = attachmentUrl; }
+
+    public String getRestaurantId() { return restaurantId; }
+    public void setRestaurantId(String restaurantId) { this.restaurantId = restaurantId; }
+
+    public String getRestaurantName() { return restaurantName; }
+    public void setRestaurantName(String restaurantName) { this.restaurantName = restaurantName; }
+
+    public String getRestaurantImageUrl() { return restaurantImageUrl; }
+    public void setRestaurantImageUrl(String restaurantImageUrl) { this.restaurantImageUrl = restaurantImageUrl; }
+
+    public double getRestaurantRating() { return restaurantRating; }
+    public void setRestaurantRating(double restaurantRating) { this.restaurantRating = restaurantRating; }
 
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
 
+    public String getDeliveryState() { return deliveryState; }
+    public void setDeliveryState(String deliveryState) { this.deliveryState = deliveryState; }
+
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    public boolean isDeleted() { return isDeleted; }
+    public void setDeleted(boolean deleted) { isDeleted = deleted; }
+
+    public int getReportCount() { return reportCount; }
+    public void setReportCount(int reportCount) { this.reportCount = reportCount; }
 }

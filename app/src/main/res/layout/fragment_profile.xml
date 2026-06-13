@@ -133,9 +133,10 @@
                 android:padding="12dp">
 
                 <TextView
+                    android:id="@+id/tvExploredCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="45"
+                    android:text="0"
                     android:textColor="@color/orange_main"
                     android:textSize="18sp"
                     android:textStyle="bold" />
@@ -161,9 +162,10 @@
                 android:padding="12dp">
 
                 <TextView
+                    android:id="@+id/tvContributedCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="12"
+                    android:text="0"
                     android:textColor="@color/yellow_main"
                     android:textSize="18sp"
                     android:textStyle="bold" />
@@ -188,9 +190,10 @@
                 android:padding="12dp">
 
                 <TextView
+                    android:id="@+id/tvReviewCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="38"
+                    android:text="0"
                     android:textColor="@color/green_open"
                     android:textSize="18sp"
                     android:textStyle="bold" />
