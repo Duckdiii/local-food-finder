@@ -14,122 +14,51 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <LinearLayout
-        android:id="@+id/explore_search"
+    <!-- Modern Search Overlay -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/explore_search_card"
         android:layout_width="0dp"
-        android:layout_height="52dp"
+        android:layout_height="54dp"
         android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
         android:layout_marginTop="20dp"
-        android:background="@drawable/bg_search"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🔍"
-            android:textSize="18sp" />
-
-        <EditText
-            android:id="@+id/etSearch"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:background="@android:color/transparent"
-            android:hint="Tìm món ăn, quán..."
-            android:imeOptions="actionSearch"
-            android:singleLine="true"
-            android:textColor="@color/text_dark"
-            android:textSize="14sp" />
-    </LinearLayout>
-
-    <HorizontalScrollView
-        android:id="@+id/explore_chip_scroll"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="12dp"
         android:layout_marginEnd="20dp"
-        android:scrollbars="none"
+        app:cardCornerRadius="27dp"
+        app:cardElevation="6dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/explore_search">
+        app:layout_constraintTop_toTopOf="parent"
+        app:strokeWidth="0dp">
 
         <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp">
 
             <TextView
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:background="@drawable/bg_chip_orange"
-                android:gravity="center"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:text="Tất cả"
-                android:textColor="@color/white"
-                android:textSize="13sp" />
+                android:layout_height="wrap_content"
+                android:text="🔍"
+                android:textSize="18sp" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/bg_chip_white"
-                android:gravity="center"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:text="Phở"
+            <EditText
+                android:id="@+id/etSearch"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:hint="Tìm kiếm địa điểm..."
+                android:imeOptions="actionSearch"
+                android:singleLine="true"
                 android:textColor="@color/text_dark"
-                android:textSize="13sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/bg_chip_white"
-                android:gravity="center"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:text="Bánh mì"
-                android:textColor="@color/text_dark"
-                android:textSize="13sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/bg_chip_white"
-                android:gravity="center"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:text="Nước"
-                android:textColor="@color/text_dark"
-                android:textSize="13sp" />
+                android:textSize="14sp" />
         </LinearLayout>
-    </HorizontalScrollView>
+    </com.google.android.material.card.MaterialCardView>
 
-    <TextView
-        android:id="@+id/explore_location"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginEnd="20dp"
-        android:background="@drawable/bg_card"
-        android:elevation="4dp"
-        android:gravity="center"
-        android:text="📍"
-        android:textSize="18sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/explore_chip_scroll" />
-
+    <!-- Map Controls -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -137,78 +66,112 @@
         android:orientation="vertical"
         app:layout_constraintBottom_toTopOf="@id/explore_sheet"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/explore_location"
+        app:layout_constraintTop_toBottomOf="@id/explore_search_card"
         app:layout_constraintVertical_bias="0.2">
 
-        <TextView
-            android:id="@+id/btnZoomIn"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:background="@drawable/bg_card"
-            android:elevation="4dp"
-            android:gravity="center"
-            android:text="+"
-            android:textColor="@color/text_dark"
-            android:textSize="24sp" />
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btnZoomInCard"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
+            app:strokeWidth="0dp">
+            <TextView
+                android:id="@+id/btnZoomIn"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="+"
+                android:textColor="@color/text_dark"
+                android:textSize="24sp" />
+        </com.google.android.material.card.MaterialCardView>
 
-        <TextView
-            android:id="@+id/btnZoomOut"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/bg_card"
-            android:elevation="4dp"
-            android:gravity="center"
-            android:text="−"
-            android:textColor="@color/text_dark"
-            android:textSize="24sp" />
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btnZoomOutCard"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
+            app:strokeWidth="0dp">
+            <TextView
+                android:id="@+id/btnZoomOut"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="−"
+                android:textColor="@color/text_dark"
+                android:textSize="24sp" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/location_card"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="24dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
+            app:strokeWidth="0dp">
+            <TextView
+                android:id="@+id/explore_location"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="📍"
+                android:textSize="20sp" />
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 
-    <LinearLayout
+    <!-- Bottom Sheet Peek -->
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/explore_sheet"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="8dp"
-        android:background="@drawable/bg_bottom_sheet"
-        android:elevation="8dp"
-        android:orientation="vertical"
-        android:padding="16dp"
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
-
-        <View
-            android:layout_width="42dp"
-            android:layout_height="4dp"
-            android:layout_gravity="center_horizontal"
-            android:background="@color/border_light" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:strokeWidth="0dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/bg_card"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="20dp">
+
+            <View
+                android:layout_width="40dp"
+                android:layout_height="4dp"
+                android:layout_gravity="center_horizontal"
+                android:background="#E0E0E0" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <View
-                    android:id="@+id/ivSheetImage"
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    android:background="@drawable/bg_image_placeholder" />
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp">
+                    <View
+                        android:id="@+id/ivSheetImage"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/bg_image_placeholder" />
+                </com.google.android.material.card.MaterialCardView>
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="16dp"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
@@ -218,7 +181,7 @@
                         android:layout_height="wrap_content"
                         android:text="Lẩu Thái Xanh TP9"
                         android:textColor="@color/text_dark"
-                        android:textSize="16sp"
+                        android:textSize="18sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -226,77 +189,39 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="★★★★☆ 4.7 • 182 đánh giá • 350m"
+                        android:text="★ 4.7 • 182 đánh giá"
                         android:textColor="@color/text_gray"
-                        android:textSize="12sp" />
+                        android:textSize="13sp" />
+
+                    <!-- Hidden but required for code compatibility -->
+                    <TextView android:id="@+id/tvSheetFoodType" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+                    <TextView android:id="@+id/tvSheetPrice" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+                    <TextView android:id="@+id/tvSheetTime" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
                 </LinearLayout>
 
                 <TextView
                     android:id="@+id/tvSheetStatus"
                     android:layout_width="wrap_content"
-                    android:layout_height="28dp"
+                    android:layout_height="wrap_content"
                     android:background="@drawable/bg_chip_green"
-                    android:gravity="center"
                     android:paddingStart="10dp"
+                    android:paddingTop="4dp"
                     android:paddingEnd="10dp"
-                    android:text="Đang mở"
-                    android:textColor="@color/text_dark"
-                    android:textSize="11sp" />
+                    android:paddingBottom="4dp"
+                    android:text="Mở cửa"
+                    android:textColor="@color/green_open"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="20dp"
                 android:orientation="horizontal">
 
                 <TextView
-                    android:id="@+id/tvSheetFoodType"
-                    android:layout_width="wrap_content"
-                    android:layout_height="28dp"
-                    android:background="@drawable/bg_chip_white"
-                    android:gravity="center"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp"
-                    android:text="Lẩu"
-                    android:textColor="@color/text_dark"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:id="@+id/tvSheetPrice"
-                    android:layout_width="wrap_content"
-                    android:layout_height="28dp"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/bg_chip_white"
-                    android:gravity="center"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp"
-                    android:text="80-150k"
-                    android:textColor="@color/text_dark"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:id="@+id/tvSheetTime"
-                    android:layout_width="wrap_content"
-                    android:layout_height="28dp"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/bg_chip_white"
-                    android:gravity="center"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp"
-                    android:text="22:00"
-                    android:textColor="@color/text_dark"
-                    android:textSize="11sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
+                    android:id="@+id/btnDirect"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
@@ -307,17 +232,24 @@
                     android:textSize="14sp"
                     android:textStyle="bold" />
 
-                <TextView
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:layout_marginStart="10dp"
-                    android:background="@drawable/bg_icon_button"
-                    android:gravity="center"
-                    android:text="❤"
-                    android:textColor="@color/orange_main"
-                    android:textSize="16sp" />
+                    android:layout_marginStart="12dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="@color/border_light"
+                    app:strokeWidth="1dp">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="❤"
+                        android:textColor="@color/orange_main"
+                        android:textSize="18sp" />
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
         </LinearLayout>
-    </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

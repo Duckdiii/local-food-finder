@@ -1,7 +1,13 @@
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <gradient
-        android:startColor="@color/orange_main"
-        android:endColor="@color/yellow_main"
-        android:angle="0"/>
-    <corners android:radius="14dp"/>
-</shape>
+<?xml version="1.0" encoding="utf-8"?>
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#40FFFFFF">
+    <item>
+        <shape>
+            <gradient
+                android:angle="0"
+                android:endColor="#FF7043"
+                android:startColor="@color/orange_main" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+</ripple>
