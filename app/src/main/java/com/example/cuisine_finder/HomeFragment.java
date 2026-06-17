@@ -112,7 +112,10 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadFriendsActivity() {
-        if (!authService.isLoggedIn()) return;
+        if (!authService.isLoggedIn()) {
+            showFallbackFriends();
+            return;
+        }
 
         String currentUserId = authService.getCurrentUser().getUid();
         
@@ -125,6 +128,11 @@ public class HomeFragment extends Fragment {
                         fetchFriendProfile(friendId);
                     }
                 }
+                if (task.getResult().isEmpty()) {
+                    showFallbackFriends();
+                }
+            } else {
+                showFallbackFriends();
             }
         });
     }
@@ -151,6 +159,13 @@ public class HomeFragment extends Fragment {
                         categoriesList.add(cat);
                     }
                 }
+                if (categoriesList.isEmpty()) {
+                    addFallbackCategories();
+                }
+                categoryAdapter.notifyDataSetChanged();
+            } else {
+                categoriesList.clear();
+                addFallbackCategories();
                 categoryAdapter.notifyDataSetChanged();
             }
         });
@@ -166,9 +181,60 @@ public class HomeFragment extends Fragment {
                         featuredFoodList.add(foodItem);
                     }
                 }
+                if (featuredFoodList.isEmpty()) {
+                    addFallbackFeaturedFoods();
+                }
+                featuredFoodAdapter.notifyDataSetChanged();
+            } else {
+                featuredFoodList.clear();
+                addFallbackFeaturedFoods();
                 featuredFoodAdapter.notifyDataSetChanged();
             }
         });
+    }
+
+    private void showFallbackFriends() {
+        friendsList.clear();
+        friendsList.add(createFallbackUser("Minh Anh"));
+        friendsList.add(createFallbackUser("Duy Foodie"));
+        friendsList.add(createFallbackUser("Khoa Review"));
+        friendsList.add(createFallbackUser("Lan An Khuya"));
+        friendsAdapter.notifyDataSetChanged();
+    }
+
+    private User createFallbackUser(String name) {
+        User user = new User();
+        user.setFullName(name);
+        return user;
+    }
+
+    private void addFallbackCategories() {
+        categoriesList.add(createFallbackCategory("Bun bo"));
+        categoriesList.add(createFallbackCategory("Com tam"));
+        categoriesList.add(createFallbackCategory("Lau"));
+        categoriesList.add(createFallbackCategory("An khuya"));
+        categoriesList.add(createFallbackCategory("Ca phe"));
+    }
+
+    private FoodCategory createFallbackCategory(String name) {
+        FoodCategory category = new FoodCategory();
+        category.setName(name);
+        category.setActive(true);
+        return category;
+    }
+
+    private void addFallbackFeaturedFoods() {
+        featuredFoodList.add(createFallbackFood("Bun bo Hue", "Mon hot", 4.9));
+        featuredFoodList.add(createFallbackFood("Com tam suon bi", "Gan ban", 4.8));
+        featuredFoodList.add(createFallbackFood("Lau Thai chua cay", "An toi", 4.8));
+    }
+
+    private FoodItem createFallbackFood(String name, String categoryName, double rating) {
+        FoodItem foodItem = new FoodItem();
+        foodItem.setName(name);
+        foodItem.setCategoryName(categoryName);
+        foodItem.setAverageRating(rating);
+        return foodItem;
     }
 
     private void loadUserWelcomeName() {

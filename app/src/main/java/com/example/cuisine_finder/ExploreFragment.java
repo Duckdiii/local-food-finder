@@ -1,5 +1,6 @@
 package com.example.cuisine_finder;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,6 +12,9 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import android.preference.PreferenceManager;
+
+import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
@@ -45,12 +49,23 @@ public class ExploreFragment extends Fragment {
         btnZoomIn = view.findViewById(R.id.btnZoomIn);
         btnZoomOut = view.findViewById(R.id.btnZoomOut);
 
+        // Thêm đoạn này trước khi gọi findViewById hoặc setup mapView
+        Context ctx = requireContext().getApplicationContext();
+        Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx));
+// BẮT BUỘC CÓ: Khai báo User Agent bằng tên package của app
+        Configuration.getInstance().setUserAgentValue(ctx.getPackageName());
+
+// Cấu hình nguồn bản đồ (Thường dùng MAPNIK)
+        mapView.setTileSource(TileSourceFactory.MAPNIK);
+
         setupMap();
         setupSearch();
         setupZoomControls();
 
         return view;
     }
+
+
 
     private void setupMap() {
         mapView.setTileSource(TileSourceFactory.MAPNIK);
@@ -94,25 +109,25 @@ public class ExploreFragment extends Fragment {
         new Thread(() -> {
             try {
                 // Use GeocoderNominatim for address search
-                org.osmdroid.bonuspack.location.GeocoderNominatim geocoder = 
-                    new org.osmdroid.bonuspack.location.GeocoderNominatim("CuisineFinder/1.0");
-                
-                java.util.List<android.location.Address> addresses = 
-                    geocoder.getFromLocationName(query, 1);
+                org.osmdroid.bonuspack.location.GeocoderNominatim geocoder =
+                        new org.osmdroid.bonuspack.location.GeocoderNominatim("CuisineFinder/1.0");
+
+                java.util.List<android.location.Address> addresses =
+                        geocoder.getFromLocationName(query, 1);
 
                 if (addresses != null && !addresses.isEmpty()) {
                     android.location.Address address = addresses.get(0);
                     GeoPoint location = new GeoPoint(address.getLatitude(), address.getLongitude());
-                    
+
                     getActivity().runOnUiThread(() -> updateMapAndSheet(address.getFeatureName(), address.getAddressLine(0), location));
                 } else {
-                    getActivity().runOnUiThread(() -> 
-                        Toast.makeText(getContext(), "Không tìm thấy địa điểm", Toast.LENGTH_SHORT).show()
+                    getActivity().runOnUiThread(() ->
+                            Toast.makeText(getContext(), "Không tìm thấy địa điểm", Toast.LENGTH_SHORT).show()
                     );
                 }
             } catch (Exception e) {
-                getActivity().runOnUiThread(() -> 
-                    Toast.makeText(getContext(), "Lỗi tìm kiếm: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                getActivity().runOnUiThread(() ->
+                        Toast.makeText(getContext(), "Lỗi tìm kiếm: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                 );
             }
         }).start();
@@ -145,7 +160,7 @@ public class ExploreFragment extends Fragment {
                 displayName = "Địa điểm đã tìm";
             }
         }
-        
+
         tvSheetPlaceName.setText(displayName);
         tvSheetInfo.setText(String.format(Locale.getDefault(), "★ 4.5 • %s", description != null ? description : "Thông tin chưa cập nhật"));
         tvSheetFoodType.setText("Ẩm thực");

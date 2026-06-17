@@ -43,6 +43,8 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.StorageException;
+import com.google.firebase.storage.StorageMetadata;
 import com.google.firebase.storage.UploadTask;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -87,7 +89,7 @@ public class CommunityFragment extends Fragment {
     private ImageView ivSelectedPostImage;
     private TextView tvSelectedImageName;
     private TextView btnSubmitPost;
-    private EditText etPostCaption;
+    private EditText etPostCaption, etPostImageUrl;
     private ActivityResultLauncher<String> postImagePickerLauncher;
 
     @Override
@@ -507,6 +509,7 @@ public class CommunityFragment extends Fragment {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
         View view = getLayoutInflater().inflate(R.layout.dialog_create_community_post, null);
         etPostCaption = view.findViewById(R.id.etPostCaption);
+        etPostImageUrl = view.findViewById(R.id.etPostImageUrl);
         EditText etPostPlaceName = view.findViewById(R.id.etPostPlaceName);
         EditText etPostAddress = view.findViewById(R.id.etPostAddress);
         EditText etPostTags = view.findViewById(R.id.etPostTags);
@@ -516,7 +519,6 @@ public class CommunityFragment extends Fragment {
         TextView tvSelectedExisting = view.findViewById(R.id.tvSelectedExistingPlace);
         View layoutExisting = view.findViewById(R.id.layoutExistingPlace);
         View layoutNew = view.findViewById(R.id.layoutNewPlace);
-        TextView btnPickPostImage = view.findViewById(R.id.btnPickPostImage);
         btnSubmitPost = view.findViewById(R.id.btnSubmitPost);
         TextView btnCancelPost = view.findViewById(R.id.btnCancelPost);
         layoutSelectedImage = view.findViewById(R.id.layoutSelectedImage);
@@ -532,8 +534,13 @@ public class CommunityFragment extends Fragment {
                 updateSubmitPostButton();
             }
         });
+        etPostImageUrl.addTextChangedListener(new SimpleTextWatcher() {
+            @Override
+            public void afterTextChanged(Editable editable) {
+                updateSubmitPostButton();
+            }
+        });
 
-        btnPickPostImage.setOnClickListener(v -> postImagePickerLauncher.launch("image/*"));
         btnExistingOption.setOnClickListener(v -> {
             useExistingPlace[0] = true;
             setPlaceOptionState(btnExistingOption, btnNewOption, layoutExisting, layoutNew, true);
@@ -573,6 +580,7 @@ public class CommunityFragment extends Fragment {
             tvSelectedImageName = null;
             btnSubmitPost = null;
             etPostCaption = null;
+            etPostImageUrl = null;
         });
         dialog.setContentView(view);
         dialog.show();
@@ -699,6 +707,8 @@ public class CommunityFragment extends Fragment {
             FoodPlace selectedExistingPlace
     ) {
         String caption = etPostCaption.getText().toString().trim();
+        String imageUrl = etPostImageUrl != null ? etPostImageUrl.getText().toString().trim() : "";
+        
         if (useExistingPlace && selectedExistingPlace == null) {
             Toast.makeText(requireContext(), "Vui lòng chọn một quán đã có trên app", Toast.LENGTH_SHORT).show();
             return;
@@ -709,8 +719,8 @@ public class CommunityFragment extends Fragment {
             Toast.makeText(requireContext(), "Nhập tên quán và địa chỉ quán mới", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (caption.isEmpty() && selectedPostImageUri == null) {
-            Toast.makeText(requireContext(), "Nhập caption hoặc chọn ảnh trước khi đăng", Toast.LENGTH_SHORT).show();
+        if (caption.isEmpty() && imageUrl.isEmpty()) {
+            Toast.makeText(requireContext(), "Nhập nội dung hoặc dán link ảnh trước khi đăng", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -722,6 +732,8 @@ public class CommunityFragment extends Fragment {
         post.setAuthorName(getCurrentUserName());
         post.setAuthorAvatarUrl(getCurrentUserAvatar());
         post.setCaption(caption);
+        post.setImageUrl(imageUrl);
+        
         if (useExistingPlace) {
             post.setPlaceId(selectedExistingPlace.getId());
             post.setPlaceName(selectedExistingPlace.getName());
@@ -738,33 +750,7 @@ public class CommunityFragment extends Fragment {
         post.setTags(new ArrayList<>(parseTags(caption, etPostTags.getText().toString())));
         post.setCreatedAt(System.currentTimeMillis());
 
-        if (selectedPostImageUri != null) {
-            uploadImageThenCreatePost(post, dialog);
-        } else {
-            createPost(post, dialog);
-        }
-    }
-
-    private void uploadImageThenCreatePost(CommunityPost post, BottomSheetDialog dialog) {
-        StorageReference imageRef = FirebaseStorage.getInstance()
-                .getReference("community_posts/" + currentUserId + "/" + System.currentTimeMillis() + ".jpg");
-        UploadTask uploadTask = imageRef.putFile(selectedPostImageUri);
-        uploadTask.continueWithTask(task -> {
-            if (!task.isSuccessful()) {
-                Exception exception = task.getException();
-                if (exception != null) throw exception;
-            }
-            return imageRef.getDownloadUrl();
-        }).addOnSuccessListener(uri -> {
-            post.setImageUrl(uri.toString());
-            createPost(post, dialog);
-        }).addOnFailureListener(error -> {
-            if (btnSubmitPost != null) {
-                btnSubmitPost.setText("Đăng bài");
-                setButtonEnabled(btnSubmitPost, true);
-            }
-            Toast.makeText(requireContext(), "Upload ảnh thất bại", Toast.LENGTH_SHORT).show();
-        });
+        createPost(post, dialog);
     }
 
     private void createPost(CommunityPost post, BottomSheetDialog dialog) {
@@ -821,7 +807,9 @@ public class CommunityFragment extends Fragment {
 
     private void updateSubmitPostButton() {
         if (btnSubmitPost == null || etPostCaption == null) return;
-        boolean enabled = etPostCaption.getText().toString().trim().length() > 0 || selectedPostImageUri != null;
+        String caption = etPostCaption.getText().toString().trim();
+        String imageUrl = etPostImageUrl != null ? etPostImageUrl.getText().toString().trim() : "";
+        boolean enabled = !caption.isEmpty() || !imageUrl.isEmpty();
         setButtonEnabled(btnSubmitPost, enabled);
     }
 
