@@ -28,6 +28,7 @@ public class EditProfileActivity extends AppCompatActivity {
         etFullName = findViewById(R.id.etFullName);
         btnSave = findViewById(R.id.btnSave);
         btnCancel = findViewById(R.id.btnCancel);
+        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
 
         loadCurrentData();
 
