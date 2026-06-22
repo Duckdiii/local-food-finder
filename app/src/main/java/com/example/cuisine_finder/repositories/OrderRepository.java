@@ -56,7 +56,16 @@ public class OrderRepository {
         ));
         order.setStatusHistory(history);
 
-        return ordersRef.add(order);
+        DocumentReference orderRef = ordersRef.document();
+        order.setId(orderRef.getId());
+        return orderRef.set(order).continueWith(task -> {
+            if (!task.isSuccessful()) {
+                throw task.getException() != null
+                        ? task.getException()
+                        : new IllegalStateException("Cannot create order");
+            }
+            return orderRef;
+        });
     }
 
     public Task<DocumentSnapshot> getOrder(String orderId) {
@@ -124,6 +133,9 @@ public class OrderRepository {
 
             if (OrderStatus.SHIPPER_ACCEPTED.equals(nextStatus)) {
                 updates.put("shipperId", actor.getId());
+            }
+            if (OrderStatus.MERCHANT_ACCEPTED.equals(nextStatus)) {
+                updates.put("merchantId", actor.getId());
             }
             if (OrderStatus.DELIVERED.equals(nextStatus)
                     && PaymentMethod.COD.equals(order.getPaymentMethod())) {

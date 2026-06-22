@@ -75,7 +75,19 @@
             android:exported="false"
             android:theme="@style/Theme.Cuisine_finder" />
         <activity
+            android:name=".activities.CheckoutActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+        <activity
+            android:name=".activities.CustomerOrdersActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+        <activity
             android:name=".activities.AdminOrdersActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+        <activity
+            android:name=".activities.ShipperOrdersActivity"
             android:exported="false"
             android:theme="@style/Theme.Cuisine_finder" />
 

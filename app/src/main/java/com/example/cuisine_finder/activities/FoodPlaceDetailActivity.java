@@ -46,6 +46,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class FoodPlaceDetailActivity extends AppCompatActivity {
     public static final String EXTRA_PLACE_ID = "placeId";
@@ -473,7 +476,8 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
                 dialog.dismiss();
                 return;
             }
-            Toast.makeText(this, "Checkout se duoc trien khai o checkpoint tiep theo", Toast.LENGTH_SHORT).show();
+            openCheckout();
+            dialog.dismiss();
         });
 
         dialog.setContentView(view);
@@ -495,6 +499,37 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         symbols.setGroupingSeparator('.');
         DecimalFormat df = new DecimalFormat("#,###", symbols);
         return df.format((long) price) + "d";
+    }
+
+    private void openCheckout() {
+        if (currentPlace == null) {
+            Toast.makeText(this, "Thong tin quan chua tai xong", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(this, CheckoutActivity.class);
+        intent.putExtra(CheckoutActivity.EXTRA_RESTAURANT_ID, currentPlace.getId());
+        intent.putExtra(CheckoutActivity.EXTRA_RESTAURANT_NAME, currentPlace.getName());
+        intent.putExtra(CheckoutActivity.EXTRA_CART_ITEMS_JSON, serializeCartItems());
+        startActivity(intent);
+    }
+
+    private String serializeCartItems() {
+        JSONArray array = new JSONArray();
+        for (CartItem item : cartItems.values()) {
+            JSONObject object = new JSONObject();
+            try {
+                object.put("foodItemId", item.getFoodItemId());
+                object.put("name", item.getName());
+                object.put("price", item.getPrice());
+                object.put("quantity", item.getQuantity());
+                object.put("imageUrl", item.getImageUrl());
+                array.put(object);
+            } catch (JSONException ignored) {
+                // Skip malformed item and keep checkout usable for the rest of the cart.
+            }
+        }
+        return array.toString();
     }
 
     private void setupChatShare() {

@@ -13,8 +13,12 @@ import androidx.fragment.app.Fragment;
 import com.example.cuisine_finder.activities.EditProfileActivity;
 import com.example.cuisine_finder.activities.FriendsActivity;
 import com.example.cuisine_finder.activities.NotificationsActivity;
+import com.example.cuisine_finder.activities.AdminOrdersActivity;
+import com.example.cuisine_finder.activities.CustomerOrdersActivity;
+import com.example.cuisine_finder.activities.ShipperOrdersActivity;
 import com.example.cuisine_finder.models.Friendship;
 import com.example.cuisine_finder.models.User;
+import com.example.cuisine_finder.models.UserRole;
 import com.example.cuisine_finder.repositories.FriendshipRepository;
 import com.example.cuisine_finder.repositories.InteractionRepository;
 import com.example.cuisine_finder.repositories.PlaceRepository;
@@ -31,9 +35,9 @@ public class ProfileFragment extends Fragment {
 
     private TextView tvFullName, tvEmail, tvAvatarInit;
     private TextView tvExploredCount, tvContributedCount, tvReviewCount;
-    private TextView tvFriendCount, tvPendingCount;
+    private TextView tvFriendCount, tvPendingCount, tvOrderManagementTitle;
     private MaterialCardView cardFriends, cardPendingBadge;
-    private View btnNotifications, btnSettings, btnSignOut;
+    private View btnNotifications, btnSettings, btnSignOut, btnCustomerOrders, separatorCustomerOrders, btnOrderManagement, separatorAdmin;
 
     private InteractionRepository interactionRepository;
     private ReviewRepository reviewRepository;
@@ -77,12 +81,17 @@ public class ProfileFragment extends Fragment {
         tvReviewCount = view.findViewById(R.id.tvReviewCount);
         tvFriendCount = view.findViewById(R.id.tvFriendCount);
         tvPendingCount = view.findViewById(R.id.tvPendingCount);
+        tvOrderManagementTitle = view.findViewById(R.id.tvOrderManagementTitle);
         cardFriends = view.findViewById(R.id.cardFriends);
         cardPendingBadge = view.findViewById(R.id.cardPendingBadge);
 
         btnNotifications = view.findViewById(R.id.btnNotifications);
         btnSettings = view.findViewById(R.id.btnSettings);
         btnSignOut = view.findViewById(R.id.btnSignOut);
+        btnCustomerOrders = view.findViewById(R.id.btnCustomerOrders);
+        separatorCustomerOrders = view.findViewById(R.id.separatorCustomerOrders);
+        btnOrderManagement = view.findViewById(R.id.btnOrderManagement);
+        separatorAdmin = view.findViewById(R.id.separatorAdmin);
 
         cardFriends.setOnClickListener(v -> {
             startActivity(new Intent(getActivity(), FriendsActivity.class));
@@ -95,6 +104,11 @@ public class ProfileFragment extends Fragment {
 
         btnNotifications.setOnClickListener(v -> {
             Intent intent = new Intent(getActivity(), NotificationsActivity.class);
+            startActivity(intent);
+        });
+
+        btnCustomerOrders.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), CustomerOrdersActivity.class);
             startActivity(intent);
         });
             
@@ -122,8 +136,38 @@ public class ProfileFragment extends Fragment {
                     if (!name.isEmpty()) {
                         tvAvatarInit.setText(String.valueOf(name.charAt(0)).toUpperCase());
                     }
+                    updateOrderManagementVisibility(user);
                 }
             }
+        });
+    }
+
+    private void updateOrderManagementVisibility(User user) {
+        if (btnCustomerOrders == null || btnOrderManagement == null || separatorAdmin == null) return;
+        boolean isCustomer = user == null || UserRole.isCustomer(user.getRole());
+        boolean isMerchant = user != null && UserRole.isMerchant(user.getRole());
+        boolean isShipper = user != null && UserRole.isShipper(user.getRole());
+        boolean merchantHasRestaurants = isMerchant
+                && user.getManagedRestaurantIds() != null
+                && !user.getManagedRestaurantIds().isEmpty();
+
+        btnCustomerOrders.setVisibility(isCustomer ? View.VISIBLE : View.GONE);
+        if (separatorCustomerOrders != null) {
+            separatorCustomerOrders.setVisibility(isCustomer ? View.VISIBLE : View.GONE);
+        }
+
+        boolean showOrderEntry = merchantHasRestaurants || isShipper;
+        btnOrderManagement.setVisibility(showOrderEntry ? View.VISIBLE : View.GONE);
+        separatorAdmin.setVisibility(showOrderEntry ? View.VISIBLE : View.GONE);
+
+        if (!showOrderEntry) {
+            btnOrderManagement.setOnClickListener(null);
+            return;
+        }
+        tvOrderManagementTitle.setText(merchantHasRestaurants ? "Don hang nha hang" : "Don giao hang");
+        btnOrderManagement.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), merchantHasRestaurants ? AdminOrdersActivity.class : ShipperOrdersActivity.class);
+            startActivity(intent);
         });
     }
 
