@@ -1,7 +1,13 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.Cuisine_finder" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+    <style name="Base.Theme.Cuisine_finder" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/orange_main</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/orange_light</item>
+        <item name="colorOnPrimaryContainer">@color/orange_deep</item>
+        <item name="colorSecondary">@color/yellow_main</item>
+        <item name="android:statusBarColor">@color/orange_deep</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowBackground">@color/cream_bg</item>
+        <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
     </style>
 </resources>

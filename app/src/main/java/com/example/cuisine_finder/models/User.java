@@ -1,5 +1,7 @@
 package com.example.cuisine_finder.models;
 
+import java.util.List;
+
 public class User {
     private String id;
     private String fullName;
@@ -10,7 +12,9 @@ public class User {
     private int exploredCount;
     private int reviewCount;
     private int favoriteCount;
-    private String role; // USER, ADMIN
+    private String role; // CUSTOMER, MERCHANT, SHIPPER, SYSTEM_ADMIN
+    private List<String> managedRestaurantIds;
+    private String shipperStatus; // AVAILABLE, BUSY, OFFLINE
     private boolean active;
     private long createdAt;
     private long updatedAt;
@@ -44,6 +48,12 @@ public class User {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public List<String> getManagedRestaurantIds() { return managedRestaurantIds; }
+    public void setManagedRestaurantIds(List<String> managedRestaurantIds) { this.managedRestaurantIds = managedRestaurantIds; }
+
+    public String getShipperStatus() { return shipperStatus; }
+    public void setShipperStatus(String shipperStatus) { this.shipperStatus = shipperStatus; }
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }

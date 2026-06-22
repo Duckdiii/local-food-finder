@@ -1,7 +1,10 @@
 package com.example.cuisine_finder.models;
 
+import com.google.firebase.firestore.IgnoreExtraProperties;
+
 import java.util.List;
 
+@IgnoreExtraProperties
 public class FoodItem {
     private String id;
     private String placeId;
