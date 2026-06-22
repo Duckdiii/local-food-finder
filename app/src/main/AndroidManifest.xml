@@ -70,6 +70,14 @@
             android:name=".activities.ExploredPlacesActivity"
             android:exported="false"
             android:theme="@style/Theme.Cuisine_finder" />
+        <activity
+            android:name=".activities.ActiveOrderActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+        <activity
+            android:name=".activities.AdminOrdersActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
