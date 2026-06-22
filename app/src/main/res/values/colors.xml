@@ -28,8 +28,9 @@
     <color name="tile_green">#C8E6C9</color>
     <color name="tile_red">#FFCDD2</color>
 
-    <color name="profile_header_start">#FFCC80</color>
-    <color name="profile_header_end">#FFA726</color>
+    <color name="profile_header_start">#FFF0CC</color>
+    <color name="profile_header_mid">#FFD050</color>
+    <color name="profile_header_end">#FF9200</color>
 
     <color name="bar_track">#EEEEEE</color>
     <color name="bar_orange">#FF9800</color>
@@ -42,8 +43,8 @@
     <color name="button_dark">#212121</color>
     <color name="button_light">#F5F5F5</color>
 
-    <color name="signin_bg_start">#FFFFFF</color>
-    <color name="signin_bg_end">#FFF3E0</color>
+    <color name="signin_bg_start">#FFF9F4</color>
+    <color name="signin_bg_end">#FFE4CC</color>
     <color name="signin_input_bg">#FAFAFA</color>
 
     <!-- Legacy compatibility colors -->

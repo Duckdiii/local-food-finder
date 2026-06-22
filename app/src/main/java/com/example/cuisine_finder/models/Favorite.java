@@ -10,6 +10,7 @@ public class Favorite {
     private String foodType;
     private double latitude;
     private double longitude;
+    private boolean openLate;
     private long createdAt;
 
     public Favorite() {
@@ -41,6 +42,9 @@ public class Favorite {
 
     public double getLongitude() { return longitude; }
     public void setLongitude(double longitude) { this.longitude = longitude; }
+
+    public boolean isOpenLate() { return openLate; }
+    public void setOpenLate(boolean openLate) { this.openLate = openLate; }
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }

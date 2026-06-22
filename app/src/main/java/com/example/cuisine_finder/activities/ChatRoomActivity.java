@@ -28,21 +28,35 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.ViewGroup;
+import android.widget.CheckBox;
 import com.example.cuisine_finder.R;
 import com.example.cuisine_finder.adapters.ChatMessageAdapter;
 import com.example.cuisine_finder.models.ChatMessage;
+import com.example.cuisine_finder.models.ChatRoom;
+import com.example.cuisine_finder.models.Friendship;
+import com.example.cuisine_finder.models.User;
 import com.example.cuisine_finder.repositories.ChatCache;
 import com.example.cuisine_finder.repositories.ChatRepository;
+import com.example.cuisine_finder.repositories.FriendshipRepository;
+import com.example.cuisine_finder.repositories.UserRepository;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.storage.FirebaseStorage;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ChatRoomActivity extends AppCompatActivity implements ChatMessageAdapter.MessageActionListener {
     public static final String EXTRA_ROOM_ID = "roomId";
     public static final String EXTRA_ROOM_NAME = "roomName";
+    public static final String EXTRA_ROOM_TYPE = "roomType";
     public static final String EXTRA_RESTAURANT_ID = "restaurantId";
     public static final String EXTRA_RESTAURANT_NAME = "restaurantName";
     public static final String EXTRA_RESTAURANT_RATING = "restaurantRating";
@@ -110,6 +124,7 @@ public class ChatRoomActivity extends AppCompatActivity implements ChatMessageAd
         setupPagination(layoutManager);
         setupCharacterCount();
         setupNetworkBanner();
+        setupAddMemberButton();
         if (savedInstanceState == null) sendSharedRestaurantIfPresent();
     }
 
@@ -326,6 +341,181 @@ public class ChatRoomActivity extends AppCompatActivity implements ChatMessageAd
         Intent intent = new Intent(this, FoodPlaceDetailActivity.class);
         intent.putExtra(FoodPlaceDetailActivity.EXTRA_PLACE_ID, message.getRestaurantId());
         startActivity(intent);
+    }
+
+    private void setupAddMemberButton() {
+        View btnAddMember = findViewById(R.id.btnAddMember);
+        String roomType = getIntent().getStringExtra(EXTRA_ROOM_TYPE);
+        if (ChatRoom.TYPE_COMMUNITY.equals(roomType)) {
+            btnAddMember.setVisibility(View.VISIBLE);
+            btnAddMember.setOnClickListener(v -> showAddMemberDialog());
+        } else {
+            btnAddMember.setVisibility(View.GONE);
+        }
+    }
+
+    private void showAddMemberDialog() {
+        repository.getRoom(roomId).addOnSuccessListener(doc -> {
+            Set<String> currentMembers = new HashSet<>();
+            Object memberIdsObj = doc.get("memberIds");
+            if (memberIdsObj instanceof List) {
+                for (Object id : (List<?>) memberIdsObj) {
+                    if (id instanceof String) currentMembers.add((String) id);
+                }
+            }
+            loadFriendsForInvite(currentMembers);
+        }).addOnFailureListener(e -> loadFriendsForInvite(new HashSet<>()));
+    }
+
+    private void loadFriendsForInvite(Set<String> currentMembers) {
+        if (user == null) return;
+        String currentUserId = user.getUid();
+        List<String> friendIds = new ArrayList<>();
+        AtomicInteger pending = new AtomicInteger(2);
+        FriendshipRepository friendRepo = new FriendshipRepository();
+
+        friendRepo.getFriendsByRequester(currentUserId).addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                for (DocumentSnapshot doc : task.getResult().getDocuments()) {
+                    if (Friendship.STATUS_ACCEPTED.equals(doc.getString("status"))) {
+                        String fid = doc.getString("receiverId");
+                        if (fid != null && !fid.equals(currentUserId)) friendIds.add(fid);
+                    }
+                }
+            }
+            if (pending.decrementAndGet() == 0) fetchFriendProfiles(friendIds, currentMembers);
+        });
+
+        friendRepo.getFriendsByReceiver(currentUserId).addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                for (DocumentSnapshot doc : task.getResult().getDocuments()) {
+                    if (Friendship.STATUS_ACCEPTED.equals(doc.getString("status"))) {
+                        String fid = doc.getString("requesterId");
+                        if (fid != null && !fid.equals(currentUserId)) friendIds.add(fid);
+                    }
+                }
+            }
+            if (pending.decrementAndGet() == 0) fetchFriendProfiles(friendIds, currentMembers);
+        });
+    }
+
+    private void fetchFriendProfiles(List<String> friendIds, Set<String> currentMembers) {
+        if (friendIds.isEmpty()) {
+            runOnUiThread(() -> Toast.makeText(this, "Bạn chưa có bạn bè nào", Toast.LENGTH_SHORT).show());
+            return;
+        }
+        List<User> profiles = new ArrayList<>();
+        AtomicInteger pending = new AtomicInteger(friendIds.size());
+        UserRepository userRepo = new UserRepository();
+        for (String friendId : friendIds) {
+            userRepo.getUser(friendId).addOnCompleteListener(task -> {
+                if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
+                    User u = task.getResult().toObject(User.class);
+                    if (u != null) { u.setId(friendId); profiles.add(u); }
+                }
+                if (pending.decrementAndGet() == 0) {
+                    runOnUiThread(() -> openFriendPickerDialog(profiles, currentMembers));
+                }
+            });
+        }
+    }
+
+    private void openFriendPickerDialog(List<User> friends, Set<String> currentMembers) {
+        if (friends.isEmpty()) {
+            Toast.makeText(this, "Không tìm thấy thông tin bạn bè", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Set<String> selectedIds = new HashSet<>();
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_member, null);
+        androidx.recyclerview.widget.RecyclerView rv = dialogView.findViewById(R.id.rvFriendSelect);
+        rv.setLayoutManager(new LinearLayoutManager(this));
+        FriendSelectAdapter selectAdapter = new FriendSelectAdapter(friends, currentMembers, selectedIds);
+        rv.setAdapter(selectAdapter);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Thêm thành viên")
+                .setView(dialogView)
+                .setPositiveButton("Thêm", null)
+                .setNegativeButton("Hủy", null)
+                .create();
+
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            if (selectedIds.isEmpty()) {
+                Toast.makeText(this, "Chọn ít nhất một người bạn", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            repository.addMembersToRoom(roomId, new ArrayList<>(selectedIds))
+                    .addOnSuccessListener(unused -> {
+                        Toast.makeText(this, "Đã thêm " + selectedIds.size() + " thành viên", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    })
+                    .addOnFailureListener(e ->
+                            Toast.makeText(this, "Có lỗi khi thêm thành viên", Toast.LENGTH_SHORT).show());
+        }));
+        dialog.show();
+    }
+
+    private static class FriendSelectAdapter extends androidx.recyclerview.widget.RecyclerView.Adapter<FriendSelectAdapter.VH> {
+        private final List<User> friends;
+        private final Set<String> existingMembers;
+        private final Set<String> selected;
+
+        FriendSelectAdapter(List<User> friends, Set<String> existingMembers, Set<String> selected) {
+            this.friends = friends;
+            this.existingMembers = existingMembers;
+            this.selected = selected;
+        }
+
+        @NonNull @Override
+        public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            return new VH(LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_friend_select, parent, false));
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull VH holder, int position) {
+            User friend = friends.get(position);
+            String name = friend.getFullName() != null && !friend.getFullName().isEmpty()
+                    ? friend.getFullName() : "Người dùng";
+            holder.tvName.setText(name);
+            holder.tvEmail.setText(friend.getEmail() != null ? friend.getEmail() : "");
+            holder.tvInitial.setText(String.valueOf(name.charAt(0)).toUpperCase());
+
+            boolean isMember = existingMembers.contains(friend.getId());
+            if (isMember) {
+                holder.cbSelect.setVisibility(View.GONE);
+                holder.tvAlreadyMember.setVisibility(View.VISIBLE);
+                holder.itemView.setAlpha(0.6f);
+            } else {
+                holder.cbSelect.setVisibility(View.VISIBLE);
+                holder.tvAlreadyMember.setVisibility(View.GONE);
+                holder.itemView.setAlpha(1f);
+                holder.cbSelect.setChecked(selected.contains(friend.getId()));
+                holder.itemView.setOnClickListener(v -> {
+                    if (selected.contains(friend.getId())) {
+                        selected.remove(friend.getId());
+                    } else {
+                        selected.add(friend.getId());
+                    }
+                    holder.cbSelect.setChecked(selected.contains(friend.getId()));
+                });
+            }
+        }
+
+        @Override public int getItemCount() { return friends.size(); }
+
+        static class VH extends androidx.recyclerview.widget.RecyclerView.ViewHolder {
+            TextView tvInitial, tvName, tvEmail, tvAlreadyMember;
+            CheckBox cbSelect;
+            VH(View v) {
+                super(v);
+                tvInitial = v.findViewById(R.id.tvFriendSelectInitial);
+                tvName = v.findViewById(R.id.tvFriendSelectName);
+                tvEmail = v.findViewById(R.id.tvFriendSelectEmail);
+                tvAlreadyMember = v.findViewById(R.id.tvAlreadyMember);
+                cbSelect = v.findViewById(R.id.cbFriendSelect);
+            }
+        }
     }
 
     private String displayName() {

@@ -14,6 +14,10 @@ public class FoodItemRepository {
         return foodItemsRef.get();
     }
 
+    public Task<QuerySnapshot> getMenuByPlaceId(String placeId) {
+        return foodItemsRef.whereEqualTo("placeId", placeId).get();
+    }
+
     public Task<QuerySnapshot> getFeaturedFoodItems(double minRating) {
         return foodItemsRef
                 .whereGreaterThanOrEqualTo("averageRating", minRating)

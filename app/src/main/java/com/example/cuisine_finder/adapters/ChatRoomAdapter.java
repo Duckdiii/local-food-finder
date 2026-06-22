@@ -41,9 +41,20 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.RoomVi
     @Override
     public void onBindViewHolder(@NonNull RoomViewHolder holder, int position) {
         ChatRoom room = rooms.get(position);
-        holder.name.setText(displayName(room.getId()));
-        holder.description.setText(description(room.getId()));
-        holder.icon.setText(icon(room.getId()));
+
+        // For user-created community rooms, use the room's actual name/description/icon
+        boolean isUserGroup = ChatRoom.TYPE_COMMUNITY.equals(room.getType())
+                && room.getName() != null && !room.getName().equals(room.getId());
+
+        holder.name.setText(isUserGroup ? room.getName() : displayName(room.getId()));
+
+        String desc = (isUserGroup && room.getDescription() != null && !room.getDescription().isEmpty())
+                ? room.getDescription()
+                : description(room.getId());
+        holder.description.setText(desc);
+
+        holder.icon.setText(isUserGroup ? "👥" : icon(room.getId()));
+
         holder.lastMessage.setText(room.getLastMessage() == null || room.getLastMessage().isEmpty()
                 ? "Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện."
                 : room.getLastMessage());

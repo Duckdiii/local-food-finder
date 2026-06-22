@@ -6,6 +6,10 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
 
     <application
         android:allowBackup="true"
@@ -30,6 +34,10 @@
             android:exported="false"
             android:theme="@style/Theme.Cuisine_finder" />
         <activity
+            android:name=".activities.PlacesByCategoryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+        <activity
             android:name=".activities.ChatRoomActivity"
             android:exported="false"
             android:theme="@style/Theme.Cuisine_finder" />
@@ -45,6 +53,33 @@
             android:name=".activities.NotificationsActivity"
             android:exported="false"
             android:theme="@style/Theme.Cuisine_finder" />
+        <activity
+            android:name=".activities.FriendsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+        <activity
+            android:name=".activities.UserProfileActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+        <activity
+            android:name=".activities.UserSearchActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder"
+            android:windowSoftInputMode="stateVisible" />
+        <activity
+            android:name=".activities.ExploredPlacesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

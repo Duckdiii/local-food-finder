@@ -1,6 +1,7 @@
 package com.example.cuisine_finder;
 
 import android.app.TimePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -8,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -276,7 +278,7 @@ public class SearchResultFragment extends Fragment {
         if (!matchesPrice(foodItem.getPrice())) {
             return false;
         }
-        return matchesOpenTime(linkedPlace);
+        return matchesOpenTime(linkedPlace) && matchesOpenLate(linkedPlace) && matchesOpenNow(linkedPlace);
     }
 
     private boolean matchesFoodPlace(FoodPlace place, String normalizedQuery) {
@@ -292,7 +294,7 @@ public class SearchResultFragment extends Fragment {
         if (!matchesPrice(place.getPriceRange())) {
             return false;
         }
-        return matchesOpenTime(place);
+        return matchesOpenTime(place) && matchesOpenLate(place) && matchesOpenNow(place);
     }
 
     private boolean matchesQuery(FoodItem foodItem, String normalizedQuery) {
@@ -351,6 +353,26 @@ public class SearchResultFragment extends Fragment {
         return bucketMax >= selectedMin && bucketMin <= selectedMax;
     }
 
+    private boolean matchesOpenNow(@Nullable FoodPlace place) {
+        if (!filterState.openNow) return true;
+        if (place == null) return false;
+        Integer openMinutes = parseTimeToMinutes(place.getOpenTime());
+        Integer closeMinutes = parseTimeToMinutes(place.getCloseTime());
+        if (openMinutes == null || closeMinutes == null) return false;
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        int nowMinutes = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE);
+        if (openMinutes <= closeMinutes) {
+            return nowMinutes >= openMinutes && nowMinutes <= closeMinutes;
+        }
+        return nowMinutes >= openMinutes || nowMinutes <= closeMinutes;
+    }
+
+    private boolean matchesOpenLate(@Nullable FoodPlace place) {
+        if (!filterState.openLate) return true;
+        if (place == null) return false;
+        return place.isOpenLate();
+    }
+
     private boolean matchesOpenTime(@Nullable FoodPlace place) {
         if (filterState.openAtMinutes == null) {
             return true;
@@ -386,7 +408,8 @@ public class SearchResultFragment extends Fragment {
                 formatRating(foodItem.getAverageRating()),
                 linkedPlace != null ? formatTimeRange(linkedPlace.getOpenTime(), linkedPlace.getCloseTime()) : null,
                 "Món",
-                foodItem.getAverageRating()
+                foodItem.getAverageRating(),
+                linkedPlace != null ? linkedPlace.getId() : null
         );
     }
 
@@ -399,7 +422,8 @@ public class SearchResultFragment extends Fragment {
                 formatRating(place.getAverageRating()),
                 formatTimeRange(place.getOpenTime(), place.getCloseTime()),
                 "Quán",
-                place.getAverageRating()
+                place.getAverageRating(),
+                place.getId()
         );
     }
 
@@ -421,12 +445,16 @@ public class SearchResultFragment extends Fragment {
         EditText etFilterMinPrice = dialogView.findViewById(R.id.etFilterMinPrice);
         EditText etFilterMaxPrice = dialogView.findViewById(R.id.etFilterMaxPrice);
         EditText etFilterMinRating = dialogView.findViewById(R.id.etFilterMinRating);
+        CheckBox checkFilterOpenNow = dialogView.findViewById(R.id.checkFilterOpenNow);
+        CheckBox checkFilterOpenLate = dialogView.findViewById(R.id.checkFilterOpenLate);
 
         etFilterFoodType.setText(filterState.foodType);
         tvFilterOpenTime.setText(filterState.openAtMinutes != null ? formatMinutes(filterState.openAtMinutes) : "Tất cả");
         etFilterMinPrice.setText(filterState.minPrice != null ? formatNumber(filterState.minPrice) : "");
         etFilterMaxPrice.setText(filterState.maxPrice != null ? formatNumber(filterState.maxPrice) : "");
         etFilterMinRating.setText(filterState.minRating != null ? formatNumber(filterState.minRating) : "");
+        checkFilterOpenNow.setChecked(filterState.openNow);
+        checkFilterOpenLate.setChecked(filterState.openLate);
 
         tvFilterOpenTime.setOnClickListener(v -> showTimePicker(tvFilterOpenTime));
 
@@ -447,6 +475,8 @@ public class SearchResultFragment extends Fragment {
                     if (!applyFilterInputs(etFilterFoodType, tvFilterOpenTime, etFilterMinPrice, etFilterMaxPrice, etFilterMinRating)) {
                         return;
                     }
+                    filterState.openNow = checkFilterOpenNow.isChecked();
+                    filterState.openLate = checkFilterOpenLate.isChecked();
                     dialog.dismiss();
                     updateFilterSummary();
                     applySearchAndFilters();
@@ -557,6 +587,12 @@ public class SearchResultFragment extends Fragment {
         }
         if (filterState.minRating != null) {
             parts.add("Từ " + formatNumber(filterState.minRating) + " sao");
+        }
+        if (filterState.openNow) {
+            parts.add("🕐 Đang mở");
+        }
+        if (filterState.openLate) {
+            parts.add("🌙 Mở khuya");
         }
         return joinWithDivider(parts.toArray(new String[0]));
     }
@@ -731,6 +767,8 @@ public class SearchResultFragment extends Fragment {
         private Double minPrice;
         private Double maxPrice;
         private Double minRating;
+        private boolean openNow;
+        private boolean openLate;
 
         private void clear() {
             foodType = null;
@@ -738,6 +776,8 @@ public class SearchResultFragment extends Fragment {
             minPrice = null;
             maxPrice = null;
             minRating = null;
+            openNow = false;
+            openLate = false;
         }
     }
 
@@ -766,6 +806,7 @@ public class SearchResultFragment extends Fragment {
         private final String iconLabel;
         private final double rating;
         private final boolean emptyState;
+        private final String placeId;
 
         private ResultRow(
                 String title,
@@ -776,7 +817,8 @@ public class SearchResultFragment extends Fragment {
                 String timeChip,
                 String iconLabel,
                 double rating,
-                boolean emptyState
+                boolean emptyState,
+                String placeId
         ) {
             this.title = title;
             this.subtitle = subtitle;
@@ -787,6 +829,7 @@ public class SearchResultFragment extends Fragment {
             this.iconLabel = iconLabel;
             this.rating = rating;
             this.emptyState = emptyState;
+            this.placeId = placeId;
         }
 
         private static ResultRow result(
@@ -797,13 +840,14 @@ public class SearchResultFragment extends Fragment {
                 String ratingChip,
                 String timeChip,
                 String iconLabel,
-                double rating
+                double rating,
+                String placeId
         ) {
-            return new ResultRow(title, subtitle, typeChip, priceChip, ratingChip, timeChip, iconLabel, rating, false);
+            return new ResultRow(title, subtitle, typeChip, priceChip, ratingChip, timeChip, iconLabel, rating, false, placeId);
         }
 
         private static ResultRow empty(String title, String subtitle) {
-            return new ResultRow(title, subtitle, null, null, null, null, null, 0d, true);
+            return new ResultRow(title, subtitle, null, null, null, null, null, 0d, true, null);
         }
     }
 
@@ -905,12 +949,23 @@ public class SearchResultFragment extends Fragment {
                     badgeContainer.setVisibility(View.GONE);
                     chipsRow.setVisibility(View.GONE);
                     tvArrow.setVisibility(View.GONE);
+                    tvArrow.setOnClickListener(null);
                     return;
                 }
 
                 badgeContainer.setVisibility(View.VISIBLE);
                 tvArrow.setVisibility(View.VISIBLE);
                 tvBadgeLabel.setText(row.iconLabel);
+
+                if (!TextUtils.isEmpty(row.placeId)) {
+                    tvArrow.setOnClickListener(v -> {
+                        Intent intent = new Intent(requireContext(), com.example.cuisine_finder.activities.FoodPlaceDetailActivity.class);
+                        intent.putExtra(com.example.cuisine_finder.activities.FoodPlaceDetailActivity.EXTRA_PLACE_ID, row.placeId);
+                        startActivity(intent);
+                    });
+                } else {
+                    tvArrow.setOnClickListener(null);
+                }
 
                 int visibleChipCount = 0;
                 visibleChipCount += bindChip(tvTypeChip, row.typeChip);

@@ -23,13 +23,17 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.cuisine_finder.R;
+import com.example.cuisine_finder.adapters.MenuAdapter;
 import com.example.cuisine_finder.adapters.ReviewAdapter;
 import com.example.cuisine_finder.models.ExploredPlace;
 import com.example.cuisine_finder.models.Favorite;
+import com.example.cuisine_finder.models.FoodItem;
 import com.example.cuisine_finder.models.FoodPlace;
 import com.example.cuisine_finder.models.Review;
+import com.example.cuisine_finder.repositories.FoodItemRepository;
 import com.example.cuisine_finder.repositories.InteractionRepository;
 import com.example.cuisine_finder.repositories.ReviewRepository;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -44,10 +48,16 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
     private TextView tvAddress, tvDescription, tvOpenTime, tvCloseTime;
     private TextView btnFavorite, btnShare, btnCall, btnOrder, btnExplored, btnWriteReview;
     private RecyclerView rvReviews;
+    private RecyclerView rvMenu;
+    private LinearLayout layoutMenuTab, layoutReviewsTab, layoutMenuEmpty;
+    private com.google.android.material.card.MaterialCardView tabMenu, tabReviews;
+    private TextView tvTabMenuLabel, tvTabReviewsLabel;
     private ReviewAdapter reviewAdapter;
+    private MenuAdapter menuAdapter;
 
     private FoodPlace currentPlace;
     private ReviewRepository reviewRepository;
+    private FoodItemRepository foodItemRepository;
     private InteractionRepository interactionRepository;
     private String currentUserId;
     private boolean isFavorited = false;
@@ -72,15 +82,17 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         setContentView(R.layout.activity_food_place_detail);
 
         reviewRepository = new ReviewRepository();
+        foodItemRepository = new FoodItemRepository();
         interactionRepository = new InteractionRepository();
         currentUserId = FirebaseAuth.getInstance().getUid();
 
         initViews();
         setupToolbar();
-        setupRecyclerView();
+        setupRecyclerViews();
+        setupTabs();
         setupImagePicker();
         handleWindowInsets();
-        
+
         // Fetch real data from Firestore
         String placeId = getIntent().getStringExtra(EXTRA_PLACE_ID);
         if (placeId == null) placeId = getIntent().getStringExtra("PLACE_ID");
@@ -155,7 +167,8 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
                         if (currentPlace != null) {
                             currentPlace.setId(documentSnapshot.getId());
                             loadPlaceDetails(currentPlace);
-                            loadReviews(); // Load reviews after we have the place
+                            loadReviews();
+                            loadMenu(currentPlace.getId());
                             checkStatus();
                         }
                     }
@@ -180,12 +193,73 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         btnExplored = findViewById(R.id.btnExplored);
         btnWriteReview = findViewById(R.id.btnWriteReview);
         rvReviews = findViewById(R.id.rvReviews);
+        rvMenu = findViewById(R.id.rvMenu);
+        layoutMenuTab = findViewById(R.id.layoutMenuTab);
+        layoutReviewsTab = findViewById(R.id.layoutReviewsTab);
+        layoutMenuEmpty = findViewById(R.id.layoutMenuEmpty);
+        tabMenu = findViewById(R.id.tabMenu);
+        tabReviews = findViewById(R.id.tabReviews);
+        tvTabMenuLabel = findViewById(R.id.tvTabMenuLabel);
+        tvTabReviewsLabel = findViewById(R.id.tvTabReviewsLabel);
     }
 
-    private void setupRecyclerView() {
+    private void setupRecyclerViews() {
         reviewAdapter = new ReviewAdapter();
         rvReviews.setLayoutManager(new LinearLayoutManager(this));
         rvReviews.setAdapter(reviewAdapter);
+
+        menuAdapter = new MenuAdapter();
+        rvMenu.setLayoutManager(new LinearLayoutManager(this));
+        rvMenu.setAdapter(menuAdapter);
+    }
+
+    private void setupTabs() {
+        tabMenu.setOnClickListener(v -> switchTab(true));
+        tabReviews.setOnClickListener(v -> switchTab(false));
+    }
+
+    private void switchTab(boolean showMenu) {
+        if (showMenu) {
+            layoutMenuTab.setVisibility(View.VISIBLE);
+            layoutReviewsTab.setVisibility(View.GONE);
+            tabMenu.setCardBackgroundColor(getResources().getColor(R.color.orange_main));
+            tabReviews.setCardBackgroundColor(getResources().getColor(R.color.white));
+            tvTabMenuLabel.setTextColor(getResources().getColor(R.color.white));
+            tvTabReviewsLabel.setTextColor(getResources().getColor(R.color.text_gray));
+        } else {
+            layoutMenuTab.setVisibility(View.GONE);
+            layoutReviewsTab.setVisibility(View.VISIBLE);
+            tabMenu.setCardBackgroundColor(getResources().getColor(R.color.white));
+            tabReviews.setCardBackgroundColor(getResources().getColor(R.color.orange_main));
+            tvTabMenuLabel.setTextColor(getResources().getColor(R.color.text_gray));
+            tvTabReviewsLabel.setTextColor(getResources().getColor(R.color.white));
+        }
+    }
+
+    private void loadMenu(String placeId) {
+        foodItemRepository.getMenuByPlaceId(placeId).addOnSuccessListener(querySnapshot -> {
+            if (querySnapshot == null || querySnapshot.isEmpty()) {
+                layoutMenuEmpty.setVisibility(View.VISIBLE);
+                rvMenu.setVisibility(View.GONE);
+                return;
+            }
+            List<FoodItem> items = new ArrayList<>();
+            for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                FoodItem item = doc.toObject(FoodItem.class);
+                if (item != null) {
+                    item.setId(doc.getId());
+                    items.add(item);
+                }
+            }
+            items.sort((a, b) -> a.getName() != null && b.getName() != null
+                    ? a.getName().compareTo(b.getName()) : 0);
+            menuAdapter.setItems(items);
+            layoutMenuEmpty.setVisibility(View.GONE);
+            rvMenu.setVisibility(View.VISIBLE);
+        }).addOnFailureListener(e -> {
+            layoutMenuEmpty.setVisibility(View.VISIBLE);
+            rvMenu.setVisibility(View.GONE);
+        });
     }
 
     private void checkStatus() {
@@ -309,8 +383,13 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
             favorite.setUserId(currentUserId);
             favorite.setPlaceId(currentPlace.getId());
             favorite.setPlaceName(currentPlace.getName());
+            favorite.setPlaceAddress(currentPlace.getAddress());
+            favorite.setFoodType(currentPlace.getFoodType());
+            favorite.setLatitude(currentPlace.getLatitude());
+            favorite.setLongitude(currentPlace.getLongitude());
+            favorite.setOpenLate(currentPlace.isOpenLate());
             favorite.setPlaceImageUrl(currentPlace.getImageUrls() != null && !currentPlace.getImageUrls().isEmpty() ? currentPlace.getImageUrls().get(0) : "");
-            
+
             interactionRepository.addFavorite(favorite).addOnSuccessListener(aVoid -> {
                 isFavorited = true;
                 updateFavoriteUI();

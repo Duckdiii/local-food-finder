@@ -522,6 +522,12 @@ public class CommunityFragment extends Fragment {
         layoutSelectedImage = view.findViewById(R.id.layoutSelectedImage);
         ivSelectedPostImage = view.findViewById(R.id.ivSelectedPostImage);
         tvSelectedImageName = view.findViewById(R.id.tvSelectedImageName);
+        TextView btnRemovePostImage = view.findViewById(R.id.btnRemovePostImage);
+        btnRemovePostImage.setOnClickListener(v -> {
+            selectedPostImageUri = null;
+            updateSelectedImagePreview();
+            updateSubmitPostButton();
+        });
         final boolean[] useExistingPlace = {true};
         final FoodPlace[] selectedExistingPlace = {null};
 

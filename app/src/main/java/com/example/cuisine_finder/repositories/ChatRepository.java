@@ -11,6 +11,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.Timestamp;
 import java.util.ArrayList;
@@ -130,6 +131,44 @@ public class ChatRepository {
     public static int communityRoomOrder(String roomId) {
         int index = COMMUNITY_ROOM_IDS.indexOf(roomId);
         return index < 0 ? Integer.MAX_VALUE : index;
+    }
+
+    public Task<DocumentReference> createCommunityRoom(String name, String description, String creatorId) {
+        List<String> members = new ArrayList<>();
+        members.add(creatorId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("name", name.trim());
+        data.put("description", description != null ? description.trim() : "");
+        data.put("type", ChatRoom.TYPE_COMMUNITY);
+        data.put("createdBy", creatorId);
+        data.put("memberIds", members);
+        data.put("memberCount", 1);
+        data.put("lastMessage", "");
+        data.put("lastMessageAt", System.currentTimeMillis());
+        data.put("createdAt", System.currentTimeMillis());
+        return rooms.add(data);
+    }
+
+    public Task<Void> addMembersToRoom(String roomId, List<String> userIds) {
+        return rooms.document(roomId).update("memberIds", FieldValue.arrayUnion(userIds.toArray(new Object[0])));
+    }
+
+    public ListenerRegistration listenUserGroupRooms(String userId, RoomsCallback callback) {
+        return rooms.whereArrayContains("memberIds", userId)
+                .addSnapshotListener((snapshots, error) -> {
+                    if (error != null || snapshots == null) {
+                        callback.onResult(Collections.emptyList(), error);
+                        return;
+                    }
+                    List<ChatRoom> result = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : snapshots) {
+                        ChatRoom room = doc.toObject(ChatRoom.class);
+                        room.setId(doc.getId());
+                        result.add(room);
+                    }
+                    result.sort((a, b) -> Long.compare(b.getLastMessageAt(), a.getLastMessageAt()));
+                    callback.onResult(result, null);
+                });
     }
 
     public Task<DocumentSnapshot> getRoom(String roomId) {

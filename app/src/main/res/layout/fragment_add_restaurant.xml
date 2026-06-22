@@ -8,8 +8,10 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingBottom="24dp">
 
+        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -19,6 +21,7 @@
             android:padding="16dp">
 
             <TextView
+                android:id="@+id/btnBack"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:background="@drawable/bg_icon_soft"
@@ -51,11 +54,24 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Camera panel for signboard image -->
         <FrameLayout
+            android:id="@+id/frameCameraPanel"
             android:layout_width="match_parent"
             android:layout_height="200dp"
-            android:background="@drawable/bg_camera_panel">
+            android:background="@drawable/bg_camera_panel"
+            android:clickable="true"
+            android:focusable="true">
 
+            <!-- Preview image (shown after selection) -->
+            <ImageView
+                android:id="@+id/ivSignboard"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:visibility="gone" />
+
+            <!-- Corner bracket decorations -->
             <View
                 android:layout_width="16dp"
                 android:layout_height="16dp"
@@ -86,8 +102,19 @@
                 android:layout_margin="16dp"
                 android:background="@drawable/bg_camera_corner"
                 android:rotation="180" />
+
+            <!-- Hint label (hidden after selection) -->
+            <TextView
+                android:id="@+id/tvCameraHint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="Nhấn để chọn ảnh biển hiệu"
+                android:textColor="@color/text_gray"
+                android:textSize="12sp" />
         </FrameLayout>
 
+        <!-- Photo action buttons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -96,25 +123,28 @@
             android:orientation="horizontal">
 
             <TextView
+                android:id="@+id/btnCapture"
                 android:layout_width="120dp"
                 android:layout_height="36dp"
                 android:background="@drawable/bg_button_dark"
                 android:gravity="center"
-                android:text="Chụp ảnh"
+                android:text="📷 Chụp ảnh"
                 android:textColor="@color/white"
                 android:textSize="12sp" />
 
             <TextView
+                android:id="@+id/btnGallery"
                 android:layout_width="120dp"
                 android:layout_height="36dp"
                 android:layout_marginStart="12dp"
                 android:background="@drawable/bg_button_light"
                 android:gravity="center"
-                android:text="Thư viện"
+                android:text="🖼 Thư viện"
                 android:textColor="@color/text_dark"
                 android:textSize="12sp" />
         </LinearLayout>
 
+        <!-- Tên quán -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -128,7 +158,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Tên quán ăn"
+                android:text="Tên quán ăn *"
                 android:textColor="@color/text_gray"
                 android:textSize="11sp" />
 
@@ -147,24 +177,23 @@
                     android:text="🏪"
                     android:textSize="14sp" />
 
-                <TextView
+                <EditText
+                    android:id="@+id/etName"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:text="Bánh Xèo Bà Năm"
+                    android:background="@android:color/transparent"
+                    android:hint="Nhập tên quán..."
+                    android:imeOptions="actionNext"
+                    android:singleLine="true"
                     android:textColor="@color/text_dark"
+                    android:textColorHint="@color/text_gray"
                     android:textSize="13sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="✎"
-                    android:textColor="@color/orange_main"
-                    android:textSize="12sp" />
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Loại món ăn -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -184,35 +213,112 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="44dp"
                 android:layout_marginTop="8dp"
-                android:orientation="horizontal">
+                android:background="@drawable/bg_input_field"
+                android:gravity="center_vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="28dp"
-                    android:background="@drawable/bg_chip_orange"
-                    android:gravity="center"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:text="Bánh xèo"
-                    android:textColor="@color/white"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="28dp"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/bg_chip_white"
-                    android:gravity="center"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:text="+ Thêm"
+                <EditText
+                    android:id="@+id/etFoodType"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@android:color/transparent"
+                    android:hint="Cơm tấm, Phở, Bánh mì..."
+                    android:imeOptions="actionNext"
+                    android:singleLine="true"
                     android:textColor="@color/text_dark"
-                    android:textSize="11sp" />
+                    android:textColorHint="@color/text_gray"
+                    android:textSize="13sp" />
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Mô tả ngắn -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_section_card"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mô tả ngắn"
+                android:textColor="@color/text_gray"
+                android:textSize="11sp" />
+
+            <EditText
+                android:id="@+id/etDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_input_field"
+                android:gravity="top"
+                android:hint="Giới thiệu quán, đặc điểm nổi bật..."
+                android:inputType="textMultiLine"
+                android:maxLines="5"
+                android:minLines="3"
+                android:padding="12dp"
+                android:textColor="@color/text_dark"
+                android:textColorHint="@color/text_gray"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Địa chỉ -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_section_card"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Địa chỉ"
+                android:textColor="@color/text_gray"
+                android:textSize="11sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_input_field"
+                android:gravity="center_vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📍"
+                    android:textSize="14sp" />
+
+                <EditText
+                    android:id="@+id/etAddress"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent"
+                    android:hint="Số nhà, tên đường, quận..."
+                    android:imeOptions="actionNext"
+                    android:singleLine="true"
+                    android:textColor="@color/text_dark"
+                    android:textColorHint="@color/text_gray"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Vị trí GPS -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -238,75 +344,35 @@
                     android:textSize="11sp" />
 
                 <TextView
+                    android:id="@+id/btnDetectLocation"
                     android:layout_width="wrap_content"
                     android:layout_height="26dp"
                     android:background="@drawable/bg_chip_orange"
                     android:gravity="center"
                     android:paddingStart="10dp"
                     android:paddingEnd="10dp"
-                    android:text="Sửa"
+                    android:text="📍 Lấy vị trí"
                     android:textColor="@color/white"
                     android:textSize="11sp" />
             </LinearLayout>
 
             <TextView
+                android:id="@+id/tvCoordinates"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="10.8392° N, 106.7635° E"
+                android:text="Chưa có vị trí"
                 android:textColor="@color/text_dark"
                 android:textSize="12sp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Số 47, Đường Lê Văn Sỹ, Q.3"
-                android:textColor="@color/text_gray"
-                android:textSize="11sp" />
-
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="120dp"
-                android:layout_marginTop="10dp">
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/bg_map_placeholder" />
-
-                <TextView
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:layout_gravity="center"
-                    android:background="@drawable/bg_orange_circle"
-                    android:gravity="center"
-                    android:text="🏠"
-                    android:textColor="@color/white"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="22dp"
-                    android:layout_gravity="bottom|end"
-                    android:layout_margin="8dp"
-                    android:background="@drawable/bg_chip_white"
-                    android:gravity="center"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
-                    android:text="Kéo để chỉnh vị trí"
-                    android:textColor="@color/text_gray"
-                    android:textSize="10sp" />
-            </FrameLayout>
         </LinearLayout>
 
+        <!-- Giờ mở cửa -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             android:layout_marginTop="10dp"
-            android:layout_marginBottom="20dp"
             android:background="@drawable/bg_section_card"
             android:orientation="vertical"
             android:padding="12dp">
@@ -326,10 +392,13 @@
                 android:orientation="horizontal">
 
                 <TextView
+                    android:id="@+id/tvOpenTime"
                     android:layout_width="0dp"
                     android:layout_height="32dp"
                     android:layout_weight="1"
                     android:background="@drawable/bg_time_light"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:gravity="center"
                     android:text="07:00"
                     android:textColor="@color/text_dark"
@@ -344,11 +413,14 @@
                     android:textSize="11sp" />
 
                 <TextView
+                    android:id="@+id/tvCloseTime"
                     android:layout_width="0dp"
                     android:layout_height="32dp"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
                     android:background="@drawable/bg_time_dark"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:gravity="center"
                     android:text="23:30"
                     android:textColor="@color/white"
@@ -363,19 +435,97 @@
                 android:orientation="horizontal">
 
                 <CheckBox
+                    android:id="@+id/checkOpenLate"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:checked="true" />
+                    android:buttonTint="@color/orange_main" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
-                    android:text="Mở bán sau 10h tối"
+                    android:text="🌙 Mở bán sau 10h tối"
                     android:textColor="@color/text_gray"
                     android:textSize="11sp" />
             </LinearLayout>
         </LinearLayout>
+
+        <!-- Khoảng giá -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_section_card"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Khoảng giá"
+                android:textColor="@color/text_gray"
+                android:textSize="11sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btnPriceCheap"
+                    android:layout_width="0dp"
+                    android:layout_height="34dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_button_light"
+                    android:gravity="center"
+                    android:text="Bình dân"
+                    android:textColor="@color/text_dark"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/btnPriceMedium"
+                    android:layout_width="0dp"
+                    android:layout_height="34dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_button_light"
+                    android:gravity="center"
+                    android:text="Vừa phải"
+                    android:textColor="@color/text_dark"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/btnPriceExpensive"
+                    android:layout_width="0dp"
+                    android:layout_height="34dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_button_light"
+                    android:gravity="center"
+                    android:text="Cao cấp"
+                    android:textColor="@color/text_dark"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Gửi đề xuất -->
+        <TextView
+            android:id="@+id/btnSubmit"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/bg_orange_button"
+            android:gravity="center"
+            android:text="Gửi đề xuất"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
     </LinearLayout>
 </ScrollView>
-

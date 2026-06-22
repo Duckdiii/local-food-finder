@@ -11,26 +11,35 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import com.example.cuisine_finder.activities.EditProfileActivity;
+import com.example.cuisine_finder.activities.FriendsActivity;
 import com.example.cuisine_finder.activities.NotificationsActivity;
+import com.example.cuisine_finder.models.Friendship;
 import com.example.cuisine_finder.models.User;
+import com.example.cuisine_finder.repositories.FriendshipRepository;
 import com.example.cuisine_finder.repositories.InteractionRepository;
 import com.example.cuisine_finder.repositories.PlaceRepository;
 import com.example.cuisine_finder.repositories.ReviewRepository;
 import com.example.cuisine_finder.repositories.UserRepository;
 import com.example.cuisine_finder.services.AuthService;
+import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ProfileFragment extends Fragment {
 
     private TextView tvFullName, tvEmail, tvAvatarInit;
     private TextView tvExploredCount, tvContributedCount, tvReviewCount;
-    private TextView btnNotifications, btnSettings, btnSignOut;
-    
+    private TextView tvFriendCount, tvPendingCount;
+    private MaterialCardView cardFriends, cardPendingBadge;
+    private View btnNotifications, btnSettings, btnSignOut;
+
     private InteractionRepository interactionRepository;
     private ReviewRepository reviewRepository;
     private PlaceRepository placeRepository;
     private UserRepository userRepository;
+    private FriendshipRepository friendshipRepository;
     private AuthService authService;
     private String currentUserId;
 
@@ -43,6 +52,7 @@ public class ProfileFragment extends Fragment {
         reviewRepository = new ReviewRepository();
         placeRepository = new PlaceRepository();
         userRepository = new UserRepository();
+        friendshipRepository = new FriendshipRepository();
         authService = new AuthService();
         
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
@@ -53,6 +63,7 @@ public class ProfileFragment extends Fragment {
         initViews(view);
         loadUserProfile();
         loadStatistics();
+        loadFriendStats();
 
         return view;
     }
@@ -64,10 +75,23 @@ public class ProfileFragment extends Fragment {
         tvExploredCount = view.findViewById(R.id.tvExploredCount);
         tvContributedCount = view.findViewById(R.id.tvContributedCount);
         tvReviewCount = view.findViewById(R.id.tvReviewCount);
-        
+        tvFriendCount = view.findViewById(R.id.tvFriendCount);
+        tvPendingCount = view.findViewById(R.id.tvPendingCount);
+        cardFriends = view.findViewById(R.id.cardFriends);
+        cardPendingBadge = view.findViewById(R.id.cardPendingBadge);
+
         btnNotifications = view.findViewById(R.id.btnNotifications);
         btnSettings = view.findViewById(R.id.btnSettings);
         btnSignOut = view.findViewById(R.id.btnSignOut);
+
+        cardFriends.setOnClickListener(v -> {
+            startActivity(new Intent(getActivity(), FriendsActivity.class));
+        });
+
+        if (tvExploredCount != null) {
+            tvExploredCount.setOnClickListener(v ->
+                    startActivity(new Intent(getActivity(), com.example.cuisine_finder.activities.ExploredPlacesActivity.class)));
+        }
 
         btnNotifications.setOnClickListener(v -> {
             Intent intent = new Intent(getActivity(), NotificationsActivity.class);
@@ -103,11 +127,52 @@ public class ProfileFragment extends Fragment {
         });
     }
 
+    private void loadFriendStats() {
+        if (currentUserId == null) return;
+
+        AtomicInteger[] counts = { new AtomicInteger(0), new AtomicInteger(0) }; // [friends, pending]
+        AtomicInteger queries = new AtomicInteger(2);
+
+        friendshipRepository.getFriendsByRequester(currentUserId).addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                for (DocumentSnapshot doc : task.getResult().getDocuments()) {
+                    String status = doc.getString("status");
+                    if (Friendship.STATUS_ACCEPTED.equals(status)) counts[0].incrementAndGet();
+                }
+            }
+            if (queries.decrementAndGet() == 0) updateFriendStatsUI(counts[0].get(), counts[1].get());
+        });
+
+        friendshipRepository.getFriendsByReceiver(currentUserId).addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                for (DocumentSnapshot doc : task.getResult().getDocuments()) {
+                    String status = doc.getString("status");
+                    if (Friendship.STATUS_ACCEPTED.equals(status)) counts[0].incrementAndGet();
+                    else if (Friendship.STATUS_PENDING.equals(status)) counts[1].incrementAndGet();
+                }
+            }
+            if (queries.decrementAndGet() == 0) updateFriendStatsUI(counts[0].get(), counts[1].get());
+        });
+    }
+
+    private void updateFriendStatsUI(int friendCount, int pendingCount) {
+        if (!isAdded()) return;
+        requireActivity().runOnUiThread(() -> {
+            tvFriendCount.setText(friendCount + " bạn bè");
+            if (pendingCount > 0) {
+                cardPendingBadge.setVisibility(View.VISIBLE);
+                tvPendingCount.setText(String.valueOf(pendingCount));
+            } else {
+                cardPendingBadge.setVisibility(View.GONE);
+            }
+        });
+    }
+
     @Override
     public void onResume() {
         super.onResume();
-        // Reload profile data in case it was edited
         loadUserProfile();
+        loadFriendStats();
     }
 
     private void loadStatistics() {

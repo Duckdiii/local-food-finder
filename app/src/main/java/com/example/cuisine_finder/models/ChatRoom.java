@@ -3,11 +3,15 @@ package com.example.cuisine_finder.models;
 public class ChatRoom {
     public static final String TYPE_DISTRICT = "district";
     public static final String TYPE_PLACE = "place";
+    public static final String TYPE_COMMUNITY = "community";
 
     private String id;
     private String type;
     private String linkedPlaceId;
     private String name;
+    private String description;
+    private String createdBy;
+    private java.util.List<String> memberIds;
     private int memberCount;
     private String lastMessage;
     private long lastMessageAt;
@@ -27,6 +31,15 @@ public class ChatRoom {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+
+    public java.util.List<String> getMemberIds() { return memberIds; }
+    public void setMemberIds(java.util.List<String> memberIds) { this.memberIds = memberIds; }
 
     public int getMemberCount() { return memberCount; }
     public void setMemberCount(int memberCount) { this.memberCount = memberCount; }

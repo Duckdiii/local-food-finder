@@ -9,24 +9,33 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.cuisine_finder.activities.FoodPlaceDetailActivity;
+import com.example.cuisine_finder.activities.PlacesByCategoryActivity;
+import com.example.cuisine_finder.activities.UserProfileActivity;
 import com.example.cuisine_finder.models.FoodCategory;
 import com.example.cuisine_finder.models.FoodItem;
+import com.example.cuisine_finder.models.FoodPlace;
+import com.example.cuisine_finder.models.Friendship;
 import com.example.cuisine_finder.models.User;
 import com.example.cuisine_finder.repositories.CategoryRepository;
 import com.example.cuisine_finder.repositories.FoodItemRepository;
 import com.example.cuisine_finder.repositories.FriendshipRepository;
+import com.example.cuisine_finder.repositories.PlaceRepository;
 import com.example.cuisine_finder.repositories.UserRepository;
 import com.example.cuisine_finder.services.AuthService;
 import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -39,16 +48,19 @@ public class HomeFragment extends Fragment {
     private CategoryAdapter categoryAdapter;
     private FeaturedFoodAdapter featuredFoodAdapter;
     private TextView tvWelcome;
-    
+
     private List<User> friendsList = new ArrayList<>();
     private List<FoodCategory> categoriesList = new ArrayList<>();
     private List<FoodItem> featuredFoodList = new ArrayList<>();
-    
+
     private AuthService authService;
     private FriendshipRepository friendshipRepository;
     private UserRepository userRepository;
     private CategoryRepository categoryRepository;
     private FoodItemRepository foodItemRepository;
+    private PlaceRepository placeRepository;
+
+    private TextView btnRandomSuggestion;
 
     @Nullable
     @Override
@@ -60,12 +72,15 @@ public class HomeFragment extends Fragment {
         userRepository = new UserRepository();
         categoryRepository = new CategoryRepository();
         foodItemRepository = new FoodItemRepository();
+        placeRepository = new PlaceRepository();
 
         rvFriends = view.findViewById(R.id.rvFriendsEating);
         rvCategories = view.findViewById(R.id.rvFoodCategories);
         rvFeaturedFood = view.findViewById(R.id.rvFeaturedFood);
         tvWelcome = view.findViewById(R.id.tvWelcome);
-        
+        btnRandomSuggestion = view.findViewById(R.id.btnRandomSuggestion);
+        btnRandomSuggestion.setOnClickListener(v -> startRandomSuggestion());
+
         setupRecyclerViews();
 
         EditText etSearch = view.findViewById(R.id.etHomeSearch);
@@ -115,14 +130,33 @@ public class HomeFragment extends Fragment {
         if (!authService.isLoggedIn()) return;
 
         String currentUserId = authService.getCurrentUser().getUid();
-        
+
+        // Clear once BEFORE both async queries fire, not inside a callback.
+        // If clear() were inside getFriendsByRequester's callback, it could race
+        // against fetchFriendProfile completions from getFriendsByReceiver and wipe
+        // friends that were already added to the list.
+        friendsList.clear();
+        friendsAdapter.notifyDataSetChanged();
+
         friendshipRepository.getFriendsByRequester(currentUserId).addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
-                friendsList.clear();
                 for (DocumentSnapshot doc : task.getResult().getDocuments()) {
-                    String friendId = doc.getString("receiverId");
-                    if (friendId != null) {
-                        fetchFriendProfile(friendId);
+                    String status = doc.getString("status");
+                    if (Friendship.STATUS_ACCEPTED.equals(status)) {
+                        String friendId = doc.getString("receiverId");
+                        if (friendId != null) fetchFriendProfile(friendId);
+                    }
+                }
+            }
+        });
+
+        friendshipRepository.getFriendsByReceiver(currentUserId).addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                for (DocumentSnapshot doc : task.getResult().getDocuments()) {
+                    String status = doc.getString("status");
+                    if (Friendship.STATUS_ACCEPTED.equals(status)) {
+                        String friendId = doc.getString("requesterId");
+                        if (friendId != null) fetchFriendProfile(friendId);
                     }
                 }
             }
@@ -134,6 +168,7 @@ public class HomeFragment extends Fragment {
             if (task.isSuccessful() && task.getResult() != null) {
                 User friend = task.getResult().toObject(User.class);
                 if (friend != null) {
+                    friend.setId(friendId);
                     friendsList.add(friend);
                     friendsAdapter.notifyDataSetChanged();
                 }
@@ -173,7 +208,7 @@ public class HomeFragment extends Fragment {
 
     private void loadUserWelcomeName() {
         if (!authService.isLoggedIn()) return;
-        
+
         String currentUserId = authService.getCurrentUser().getUid();
         userRepository.getUser(currentUserId).addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
@@ -185,9 +220,145 @@ public class HomeFragment extends Fragment {
         });
     }
 
+    // ─── Random suggestion ────────────────────────────────────────────────────
+
+    private void startRandomSuggestion() {
+        btnRandomSuggestion.setEnabled(false);
+        btnRandomSuggestion.setText("🎲  Đang chọn...");
+
+        placeRepository.getCachedApprovedPlaces(new PlaceRepository.OnPlacesLoadedCallback() {
+            @Override
+            public void onLoaded(List<FoodPlace> places) {
+                if (!isAdded()) return;
+                requireActivity().runOnUiThread(() -> {
+                    btnRandomSuggestion.setEnabled(true);
+                    btnRandomSuggestion.setText("🎲  Không biết ăn gì? Để tôi chọn!");
+                    if (places.isEmpty()) {
+                        Toast.makeText(getContext(), "Chưa có dữ liệu quán ăn", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    List<FoodPlace> shuffled = new ArrayList<>(places);
+                    Collections.shuffle(shuffled);
+                    showSuggestionDialog(shuffled, 0);
+                });
+            }
+
+            @Override
+            public void onError() {
+                if (!isAdded()) return;
+                requireActivity().runOnUiThread(() -> {
+                    btnRandomSuggestion.setEnabled(true);
+                    btnRandomSuggestion.setText("🎲  Không biết ăn gì? Để tôi chọn!");
+                    Toast.makeText(getContext(), "Lỗi kết nối, thử lại sau", Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private void showSuggestionDialog(List<FoodPlace> shuffled, int tryIndex) {
+        if (!isAdded()) return;
+        FoodPlace place = shuffled.get(tryIndex % shuffled.size());
+
+        View dialogView = LayoutInflater.from(requireContext())
+            .inflate(R.layout.dialog_random_suggestion, null, false);
+
+        TextView tvCounter     = dialogView.findViewById(R.id.tvSuggestionCounter);
+        TextView tvName        = dialogView.findViewById(R.id.tvSuggestedName);
+        TextView tvStatus      = dialogView.findViewById(R.id.tvSuggestedStatus);
+        TextView tvFoodType    = dialogView.findViewById(R.id.tvSuggestedFoodType);
+        TextView tvAddress     = dialogView.findViewById(R.id.tvSuggestedAddress);
+        TextView tvRating      = dialogView.findViewById(R.id.tvSuggestedRating);
+        TextView tvPrice       = dialogView.findViewById(R.id.tvSuggestedPrice);
+        TextView tvHours       = dialogView.findViewById(R.id.tvSuggestedHours);
+        TextView btnTryAgain   = dialogView.findViewById(R.id.btnTryAgain);
+        TextView btnDetail     = dialogView.findViewById(R.id.btnSuggestionDetail);
+
+        tvCounter.setText("Gợi ý #" + (tryIndex + 1));
+        tvName.setText(place.getName() != null ? place.getName() : "Quán ăn");
+
+        boolean open = isCurrentlyOpen(place);
+        tvStatus.setText(open ? "Mở cửa" : "Đóng cửa");
+        tvStatus.setTextColor(requireContext().getColor(open ? R.color.green_open : R.color.red_close));
+        tvStatus.setBackgroundResource(open ? R.drawable.bg_chip_green : R.drawable.bg_chip_red);
+
+        if (place.getFoodType() != null && !place.getFoodType().isEmpty()) {
+            tvFoodType.setText(place.getFoodType());
+            tvFoodType.setVisibility(View.VISIBLE);
+        }
+
+        tvAddress.setText(place.getAddress() != null && !place.getAddress().isEmpty()
+            ? "📍 " + place.getAddress() : "Chưa có địa chỉ");
+
+        if (place.getAverageRating() > 0) {
+            tvRating.setText(String.format(Locale.getDefault(), "★ %.1f", place.getAverageRating()));
+        } else {
+            tvRating.setText("Chưa có đánh giá");
+        }
+
+        String formattedPrice = formatPriceRange(place.getPriceRange());
+        if (formattedPrice != null) {
+            tvPrice.setText(formattedPrice);
+            tvPrice.setVisibility(View.VISIBLE);
+        }
+
+        if (place.getOpenTime() != null && place.getCloseTime() != null) {
+            tvHours.setText("🕐 " + place.getOpenTime() + " – " + place.getCloseTime());
+            tvHours.setVisibility(View.VISIBLE);
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_card);
+        }
+
+        btnTryAgain.setOnClickListener(v -> {
+            dialog.dismiss();
+            showSuggestionDialog(shuffled, tryIndex + 1);
+        });
+
+        btnDetail.setOnClickListener(v -> {
+            dialog.dismiss();
+            if (place.getId() != null) {
+                Intent intent = new Intent(getActivity(), FoodPlaceDetailActivity.class);
+                intent.putExtra(FoodPlaceDetailActivity.EXTRA_PLACE_ID, place.getId());
+                startActivity(intent);
+            }
+        });
+
+        dialog.show();
+    }
+
+    private boolean isCurrentlyOpen(FoodPlace place) {
+        if (place.getOpenTime() == null || place.getCloseTime() == null) return true;
+        try {
+            Calendar now = Calendar.getInstance();
+            int current = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE);
+            String[] o = place.getOpenTime().split(":");
+            String[] c = place.getCloseTime().split(":");
+            int open  = Integer.parseInt(o[0]) * 60 + Integer.parseInt(o[1]);
+            int close = Integer.parseInt(c[0]) * 60 + Integer.parseInt(c[1]);
+            if (open <= close) return current >= open && current <= close;
+            return current >= open || current <= close; // crosses midnight
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    private String formatPriceRange(String priceRange) {
+        if (priceRange == null || priceRange.isEmpty()) return null;
+        switch (priceRange.toUpperCase(Locale.ROOT)) {
+            case "CHEAP":     return "💰 Bình dân";
+            case "MEDIUM":    return "💰 Vừa phải";
+            case "EXPENSIVE": return "💰 Cao cấp";
+            default:          return priceRange;
+        }
+    }
+
     private void navigateToSearchResult(String query) {
         if (query.isEmpty()) return;
-        
+
         getParentFragmentManager().beginTransaction()
                 .replace(R.id.fragmentContainer, SearchResultFragment.newInstance(query))
                 .addToBackStack(null)
@@ -212,8 +383,16 @@ public class HomeFragment extends Fragment {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             User friend = items.get(position);
             holder.tvName.setText(friend.getFullName() != null ? friend.getFullName() : "Bạn bè");
-            String[] emojis = {"🧑\u200D🍳", "🍕", "🍜", "🍔", "🍣"};
+            String[] emojis = {"🧑‍🍳", "🍕", "🍜", "🍔", "🍣"};
             holder.tvEmoji.setText(emojis[position % emojis.length]);
+
+            holder.itemView.setOnClickListener(v -> {
+                if (friend.getId() != null) {
+                    Intent intent = new Intent(requireContext(), UserProfileActivity.class);
+                    intent.putExtra(UserProfileActivity.EXTRA_USER_ID, friend.getId());
+                    startActivity(intent);
+                }
+            });
         }
 
         @Override
@@ -256,8 +435,16 @@ public class HomeFragment extends Fragment {
             else if (name.contains("cơm")) emoji = "🍚";
             else if (name.contains("lẩu")) emoji = "🍲";
             else if (name.contains("ốc")) emoji = "🐚";
-            
+
             holder.tvEmoji.setText(emoji);
+
+            holder.itemView.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), PlacesByCategoryActivity.class);
+                intent.putExtra(PlacesByCategoryActivity.EXTRA_CATEGORY_NAME, cat.getName());
+                intent.putExtra(PlacesByCategoryActivity.EXTRA_CATEGORY_DESCRIPTION, cat.getDescription());
+                intent.putExtra(PlacesByCategoryActivity.EXTRA_CATEGORY_ICON_URL, cat.getIconUrl());
+                startActivity(intent);
+            });
         }
 
         @Override
