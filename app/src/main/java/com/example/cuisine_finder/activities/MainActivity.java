@@ -9,6 +9,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
+import android.content.Intent;
 import com.example.cuisine_finder.HomeFragment;
 import com.example.cuisine_finder.ExploreFragment;
 import com.example.cuisine_finder.CommunityFragment;
@@ -16,6 +17,9 @@ import com.example.cuisine_finder.SavedFragment;
 import com.example.cuisine_finder.ProfileFragment;
 import com.example.cuisine_finder.SignInFragment;
 import com.example.cuisine_finder.R;
+import com.example.cuisine_finder.models.User;
+import com.example.cuisine_finder.models.UserRole;
+import com.example.cuisine_finder.repositories.UserRepository;
 import com.example.cuisine_finder.services.AuthService;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -56,10 +60,45 @@ public class MainActivity extends AppCompatActivity {
         
         // Load default fragment
         if (savedInstanceState == null) {
-            Fragment initialFragment = authService.isLoggedIn() ? new HomeFragment() : new SignInFragment();
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.fragmentContainer, initialFragment)
-                    .commit();
+            if (authService.isLoggedIn()) {
+                String currentUserId = authService.getCurrentUser().getUid();
+                new UserRepository().getUser(currentUserId).addOnSuccessListener(doc -> {
+                    User user = doc.toObject(User.class);
+                    if (user != null) {
+                        if (UserRole.isMerchant(user.getRole())) {
+                            if (user.getManagedRestaurantIds() == null || user.getManagedRestaurantIds().isEmpty()) {
+                                Intent intent = new Intent(MainActivity.this, CreateRestaurantActivity.class);
+                                startActivity(intent);
+                                finish();
+                            } else {
+                                Intent intent = new Intent(MainActivity.this, MerchantDashboardActivity.class);
+                                startActivity(intent);
+                                finish();
+                            }
+                        } else if (UserRole.isShipper(user.getRole())) {
+                            Intent intent = new Intent(MainActivity.this, ShipperOrdersActivity.class);
+                            startActivity(intent);
+                            finish();
+                        } else {
+                            getSupportFragmentManager().beginTransaction()
+                                    .replace(R.id.fragmentContainer, new HomeFragment())
+                                    .commit();
+                        }
+                    } else {
+                        getSupportFragmentManager().beginTransaction()
+                                .replace(R.id.fragmentContainer, new HomeFragment())
+                                .commit();
+                    }
+                }).addOnFailureListener(e -> {
+                    getSupportFragmentManager().beginTransaction()
+                            .replace(R.id.fragmentContainer, new HomeFragment())
+                            .commit();
+                });
+            } else {
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.fragmentContainer, new SignInFragment())
+                        .commit();
+            }
         }
 
         bottomNav.setOnItemSelectedListener(item -> {

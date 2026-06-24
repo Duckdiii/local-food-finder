@@ -10,6 +10,13 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import android.content.Intent;
+import com.example.cuisine_finder.activities.CreateRestaurantActivity;
+import com.example.cuisine_finder.activities.MerchantDashboardActivity;
+import com.example.cuisine_finder.activities.ShipperOrdersActivity;
+import com.example.cuisine_finder.models.User;
+import com.example.cuisine_finder.models.UserRole;
+import com.example.cuisine_finder.repositories.UserRepository;
 import com.example.cuisine_finder.services.AuthService;
 
 public class SignInFragment extends Fragment {
@@ -55,18 +62,55 @@ public class SignInFragment extends Fragment {
         authService.signIn(email, password).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 Toast.makeText(getContext(), "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
-                navigateToHome();
+                if (authService.getCurrentUser() != null) {
+                    navigateToHome(authService.getCurrentUser().getUid());
+                } else {
+                    navigateToHome(null);
+                }
             } else {
                 Toast.makeText(getContext(), "Đăng nhập thất bại: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void navigateToHome() {
-        if (getActivity() != null) {
+    private void navigateToHome(String userId) {
+        if (getActivity() == null) return;
+        if (userId == null) {
             getActivity().getSupportFragmentManager().beginTransaction()
                     .replace(R.id.fragmentContainer, new HomeFragment())
                     .commit();
+            return;
         }
+
+        new UserRepository().getUser(userId).addOnSuccessListener(doc -> {
+            User user = doc.toObject(User.class);
+            if (user != null && getActivity() != null) {
+                if (UserRole.isMerchant(user.getRole())) {
+                    if (user.getManagedRestaurantIds() == null || user.getManagedRestaurantIds().isEmpty()) {
+                        Intent intent = new Intent(getActivity(), CreateRestaurantActivity.class);
+                        startActivity(intent);
+                        getActivity().finish();
+                    } else {
+                        Intent intent = new Intent(getActivity(), MerchantDashboardActivity.class);
+                        startActivity(intent);
+                        getActivity().finish();
+                    }
+                } else if (UserRole.isShipper(user.getRole())) {
+                    Intent intent = new Intent(getActivity(), ShipperOrdersActivity.class);
+                    startActivity(intent);
+                    getActivity().finish();
+                } else {
+                    getActivity().getSupportFragmentManager().beginTransaction()
+                            .replace(R.id.fragmentContainer, new HomeFragment())
+                            .commit();
+                }
+            }
+        }).addOnFailureListener(e -> {
+            if (getActivity() != null) {
+                getActivity().getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.fragmentContainer, new HomeFragment())
+                        .commit();
+            }
+        });
     }
 }

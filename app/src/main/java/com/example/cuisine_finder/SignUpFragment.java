@@ -10,7 +10,12 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import android.content.Intent;
+import com.example.cuisine_finder.activities.CreateRestaurantActivity;
+import com.example.cuisine_finder.activities.MerchantDashboardActivity;
+import com.example.cuisine_finder.activities.ShipperOrdersActivity;
 import com.example.cuisine_finder.models.User;
+import com.example.cuisine_finder.models.UserRole;
 import com.example.cuisine_finder.repositories.UserRepository;
 import com.example.cuisine_finder.services.AuthService;
 import com.google.firebase.auth.FirebaseUser;
@@ -75,13 +80,13 @@ public class SignUpFragment extends Fragment {
             return;
         }
 
-        String selectedRole = com.example.cuisine_finder.models.UserRole.CUSTOMER;
+        String selectedRole = UserRole.CUSTOMER;
         if (rgRole != null) {
             int checkedId = rgRole.getCheckedRadioButtonId();
             if (checkedId == R.id.rbMerchant) {
-                selectedRole = com.example.cuisine_finder.models.UserRole.MERCHANT;
+                selectedRole = UserRole.MERCHANT;
             } else if (checkedId == R.id.rbShipper) {
-                selectedRole = com.example.cuisine_finder.models.UserRole.SHIPPER;
+                selectedRole = UserRole.SHIPPER;
             }
         }
 
@@ -111,18 +116,51 @@ public class SignUpFragment extends Fragment {
         userRepository.saveUser(user).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 Toast.makeText(getContext(), "Đăng ký thành công!", Toast.LENGTH_SHORT).show();
-                navigateToHome();
+                navigateToHome(user.getId());
             } else {
                 Toast.makeText(getContext(), "Lỗi lưu thông tin: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void navigateToHome() {
-        if (getActivity() != null) {
+    private void navigateToHome(String userId) {
+        if (getActivity() == null) return;
+        if (userId == null) {
             getActivity().getSupportFragmentManager().beginTransaction()
                     .replace(R.id.fragmentContainer, new HomeFragment())
                     .commit();
+            return;
         }
+
+        new UserRepository().getUser(userId).addOnSuccessListener(doc -> {
+            User user = doc.toObject(User.class);
+            if (user != null && getActivity() != null) {
+                if (UserRole.isMerchant(user.getRole())) {
+                    if (user.getManagedRestaurantIds() == null || user.getManagedRestaurantIds().isEmpty()) {
+                        Intent intent = new Intent(getActivity(), CreateRestaurantActivity.class);
+                        startActivity(intent);
+                        getActivity().finish();
+                    } else {
+                        Intent intent = new Intent(getActivity(), MerchantDashboardActivity.class);
+                        startActivity(intent);
+                        getActivity().finish();
+                    }
+                } else if (UserRole.isShipper(user.getRole())) {
+                    Intent intent = new Intent(getActivity(), ShipperOrdersActivity.class);
+                    startActivity(intent);
+                    getActivity().finish();
+                } else {
+                    getActivity().getSupportFragmentManager().beginTransaction()
+                            .replace(R.id.fragmentContainer, new HomeFragment())
+                            .commit();
+                }
+            }
+        }).addOnFailureListener(e -> {
+            if (getActivity() != null) {
+                getActivity().getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.fragmentContainer, new HomeFragment())
+                        .commit();
+            }
+        });
     }
 }

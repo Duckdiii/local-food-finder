@@ -31,8 +31,8 @@ public class CustomerOrdersActivity extends AppCompatActivity {
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
         TextView tvOrdersTitle = findViewById(R.id.tvOrdersTitle);
         TextView tvOrdersSubtitle = findViewById(R.id.tvOrdersSubtitle);
-        tvOrdersTitle.setText("Don hang cua toi");
-        tvOrdersSubtitle.setText("Bam vao don de xem trang thai moi nhat.");
+        tvOrdersTitle.setText("Đơn hàng của tôi");
+        tvOrdersSubtitle.setText("Bấm vào đơn để xem trạng thái mới nhất.");
 
         RecyclerView rvOrders = findViewById(R.id.rvAdminOrders);
         orderAdapter = new AdminOrderAdapter(this::openOrderTracking);

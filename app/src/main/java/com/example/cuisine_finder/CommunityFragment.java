@@ -201,8 +201,8 @@ public class CommunityFragment extends Fragment {
             }
 
             @Override
-            public void onReportClicked(CommunityPost post) {
-                showReportPostDialog(post);
+            public void onReportClicked(CommunityPost post, View anchorView) {
+                showPostOptionsMenu(post, anchorView);
             }
         });
         postAdapter.setCurrentUserId(currentUserId);
@@ -404,6 +404,44 @@ public class CommunityFragment extends Fragment {
                 });
     }
 
+    private void showPostOptionsMenu(CommunityPost post, View anchorView) {
+        if (currentUserId == null) {
+            Toast.makeText(requireContext(), "Vui lòng đăng nhập để thực hiện tác vụ này", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        android.widget.PopupMenu popup = new android.widget.PopupMenu(requireContext(), anchorView);
+        boolean isAuthor = currentUserId.equals(post.getAuthorId());
+
+        if (isAuthor) {
+            popup.getMenu().add("Xóa bài viết");
+        } else {
+            popup.getMenu().add("Báo cáo vi phạm");
+        }
+
+        popup.setOnMenuItemClickListener(item -> {
+            String title = item.getTitle().toString();
+            if ("Xóa bài viết".equals(title)) {
+                new AlertDialog.Builder(requireActivity())
+                        .setTitle("Xóa bài viết?")
+                        .setMessage("Bạn có chắc chắn muốn xóa bài viết này không?")
+                        .setPositiveButton("Xóa", (dialog, which) -> {
+                            communityRepository.deletePost(post.getId())
+                                    .addOnSuccessListener(unused -> Toast.makeText(requireContext(), "Đã xóa bài viết thành công", Toast.LENGTH_SHORT).show())
+                                    .addOnFailureListener(e -> Toast.makeText(requireContext(), "Không thể xóa bài viết: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                        })
+                        .setNegativeButton("Hủy", null)
+                        .show();
+                return true;
+            } else if ("Báo cáo vi phạm".equals(title)) {
+                showReportPostDialog(post);
+                return true;
+            }
+            return false;
+        });
+        popup.show();
+    }
+
     private void showReportPostDialog(CommunityPost post) {
         if (currentUserId == null) {
             Toast.makeText(requireContext(), "Vui lòng đăng nhập để báo cáo bài viết", Toast.LENGTH_SHORT).show();
@@ -416,7 +454,7 @@ public class CommunityFragment extends Fragment {
 
         String[] labels = {"Spam", "Nội dung không phù hợp", "Thông tin sai lệch"};
         String[] reasons = {"spam", "inappropriate", "misinformation"};
-        new AlertDialog.Builder(requireContext())
+        new AlertDialog.Builder(requireActivity())
                 .setTitle("Báo cáo bài viết")
                 .setItems(labels, (dialog, which) ->
                         communityRepository.reportPost(post.getId(), currentUserId, reasons[which])
@@ -801,7 +839,7 @@ public class CommunityFragment extends Fragment {
                 btnSubmitPost.setText("Đăng bài");
                 setButtonEnabled(btnSubmitPost, true);
             }
-            Toast.makeText(requireContext(), "Upload ảnh thất bại", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Upload ảnh thất bại: " + error.getMessage(), Toast.LENGTH_SHORT).show();
         });
     }
 
@@ -916,6 +954,7 @@ public class CommunityFragment extends Fragment {
     }
 
     private long getUriSize(Uri uri) {
+        if (uri == null) return 0;
         Cursor cursor = null;
         try {
             cursor = requireContext().getContentResolver().query(uri, null, null, null, null);
@@ -925,18 +964,20 @@ public class CommunityFragment extends Fragment {
                     return cursor.getLong(sizeIndex);
                 }
             }
+        } catch (Exception ignored) {
         } finally {
             if (cursor != null) cursor.close();
         }
 
         try {
             return requireContext().getContentResolver().openAssetFileDescriptor(uri, "r").getLength();
-        } catch (FileNotFoundException | NullPointerException ignored) {
+        } catch (Exception ignored) {
             return 0;
         }
     }
 
     private String getUriDisplayName(Uri uri) {
+        if (uri == null) return "Ảnh đã chọn";
         Cursor cursor = null;
         try {
             cursor = requireContext().getContentResolver().query(uri, null, null, null, null);
@@ -946,6 +987,7 @@ public class CommunityFragment extends Fragment {
                     return cursor.getString(nameIndex);
                 }
             }
+        } catch (Exception ignored) {
         } finally {
             if (cursor != null) cursor.close();
         }

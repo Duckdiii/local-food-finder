@@ -62,6 +62,10 @@ public class CommunityRepository {
         return postRef.set(post);
     }
 
+    public Task<Void> deletePost(String postId) {
+        return postsRef.document(postId).delete();
+    }
+
     public Task<Void> toggleLike(String postId, String userId) {
         DocumentReference postRef = postsRef.document(postId);
         return db.runTransaction(transaction -> {

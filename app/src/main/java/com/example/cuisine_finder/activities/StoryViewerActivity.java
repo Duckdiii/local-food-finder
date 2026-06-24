@@ -61,6 +61,7 @@ public class StoryViewerActivity extends AppCompatActivity {
     }
 
     private void loadActiveStories() {
+        int startIndex = getIntent().getIntExtra("START_INDEX", 0);
         new StoryRepository().getActiveStories().get().addOnSuccessListener(queryDocumentSnapshots -> {
             for (DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
                 Story story = doc.toObject(Story.class);
@@ -69,7 +70,8 @@ public class StoryViewerActivity extends AppCompatActivity {
 
             if (!storyList.isEmpty()) {
                 setupProgressBars();
-                showStory(0);
+                int idx = Math.min(Math.max(0, startIndex), storyList.size() - 1);
+                showStory(idx);
             } else {
                 finish();
             }

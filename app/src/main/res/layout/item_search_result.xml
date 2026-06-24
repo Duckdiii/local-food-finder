@@ -4,10 +4,12 @@
     android:id="@+id/root_search_item"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="12dp"
+    android:layout_marginBottom="10dp"
+    app:cardBackgroundColor="@color/white"
     app:cardCornerRadius="16dp"
-    app:cardElevation="2dp"
-    app:strokeWidth="0dp">
+    app:cardElevation="3dp"
+    app:strokeColor="@color/border_light"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -16,18 +18,19 @@
         android:orientation="horizontal"
         android:padding="14dp">
 
+        <!-- Left accent bar + badge container -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/resultBadgeContainer"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            app:cardCornerRadius="12dp"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            app:cardBackgroundColor="@color/orange_light"
+            app:cardCornerRadius="14dp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp">
 
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@drawable/bg_badge_soft">
+                android:layout_height="match_parent">
 
                 <TextView
                     android:id="@+id/tvResultBadge"
@@ -36,11 +39,12 @@
                     android:layout_gravity="center"
                     android:text="Món"
                     android:textColor="@color/orange_main"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
             </FrameLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Content -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -56,41 +60,56 @@
                 android:maxLines="1"
                 android:text="Tên kết quả"
                 android:textColor="@color/text_dark"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvPlaceAddress"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="3dp"
                 android:ellipsize="end"
-                android:maxLines="2"
-                android:text="Địa chỉ chi tiết của kết quả..."
+                android:maxLines="1"
+                android:text="Địa chỉ..."
                 android:textColor="@color/text_gray"
-                android:textSize="13sp" />
+                android:textSize="12sp" />
 
+            <!-- Rating, type, price chips row -->
             <LinearLayout
                 android:id="@+id/layoutResultChips"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="7dp"
+                android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/tvRatingChip"
+                <!-- Rating pill -->
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="★ 4.8"
-                    android:textColor="@color/orange_main"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
+                    android:background="@drawable/bg_chip_orange"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="8dp"
+                    android:paddingTop="3dp"
+                    android:paddingEnd="8dp"
+                    android:paddingBottom="3dp">
+
+                    <TextView
+                        android:id="@+id/tvRatingChip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="★ 4.8"
+                        android:textColor="@color/white"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/tvTypeChip"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="8dp"
                     android:text="Loại món"
                     android:textColor="@color/text_gray"
                     android:textSize="12sp" />
@@ -99,32 +118,35 @@
                     android:id="@+id/tvPriceChip"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="8dp"
                     android:text="120k"
-                    android:textColor="@color/text_gray"
+                    android:textColor="@color/text_light"
                     android:textSize="12sp" />
 
                 <TextView
                     android:id="@+id/tvTimeChip"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="8dp"
                     android:text="06:00 - 22:00"
                     android:textColor="@color/text_gray"
-                    android:textSize="12sp"
+                    android:textSize="11sp"
                     android:visibility="gone" />
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Arrow -->
         <TextView
             android:id="@+id/tvArrow"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:background="@drawable/bg_icon_soft"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_chip_orange"
             android:gravity="center"
             android:text="→"
-            android:textColor="@color/orange_main"
-            android:textSize="16sp" />
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            android:textStyle="bold" />
 
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

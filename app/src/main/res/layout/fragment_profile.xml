@@ -346,7 +346,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
                         android:layout_weight="1"
-                        android:text="Don hang cua toi"
+                        android:text="Đơn hàng của tôi"
                         android:textColor="@color/text_dark"
                         android:textSize="15sp" />
 
@@ -666,7 +666,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
                         android:layout_weight="1"
-                        android:text="Don hang nha hang"
+                        android:text="Đơn hàng nhà hàng"
                         android:textColor="@color/orange_main"
                         android:textSize="15sp"
                         android:textStyle="bold" />

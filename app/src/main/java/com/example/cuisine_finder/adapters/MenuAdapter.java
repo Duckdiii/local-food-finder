@@ -24,6 +24,7 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
 
     private List<FoodItem> items = new ArrayList<>();
     private OnAddToCartClickListener addToCartClickListener;
+    private boolean showAddButton = true;
 
     public void setItems(List<FoodItem> items) {
         this.items = items != null ? items : new ArrayList<>();
@@ -32,6 +33,10 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
 
     public void setOnAddToCartClickListener(OnAddToCartClickListener listener) {
         this.addToCartClickListener = listener;
+    }
+
+    public void setShowAddButton(boolean showAddButton) {
+        this.showAddButton = showAddButton;
     }
 
     @NonNull
@@ -87,11 +92,16 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
             holder.ivImage.setImageResource(R.drawable.bg_image_placeholder);
         }
 
-        holder.btnAdd.setOnClickListener(v -> {
-            if (addToCartClickListener != null && item.getPrice() > 0) {
-                addToCartClickListener.onAddToCart(item);
-            }
-        });
+        if (showAddButton) {
+            holder.btnAdd.setVisibility(View.VISIBLE);
+            holder.btnAdd.setOnClickListener(v -> {
+                if (addToCartClickListener != null && item.getPrice() > 0) {
+                    addToCartClickListener.onAddToCart(item);
+                }
+            });
+        } else {
+            holder.btnAdd.setVisibility(View.GONE);
+        }
     }
 
     @Override

@@ -115,6 +115,18 @@
             android:name=".activities.ShipperOrdersActivity"
             android:exported="false"
             android:theme="@style/Theme.Cuisine_finder" />
+        <activity
+            android:name=".activities.CreateRestaurantActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+        <activity
+            android:name=".activities.MerchantDashboardActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+        <activity
+            android:name=".activities.AddDishActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
 
         <service
             android:name=".services.MyFirebaseMessagingService"

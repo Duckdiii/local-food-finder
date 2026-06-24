@@ -50,8 +50,8 @@ public class AdminOrdersActivity extends AppCompatActivity {
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
         TextView tvOrdersTitle = findViewById(R.id.tvOrdersTitle);
         TextView tvOrdersSubtitle = findViewById(R.id.tvOrdersSubtitle);
-        tvOrdersTitle.setText("Don hang nha hang");
-        tvOrdersSubtitle.setText("Nhan don, che bien va chuyen sang trang thai san sang giao.");
+        tvOrdersTitle.setText("Đơn hàng nhà hàng");
+        tvOrdersSubtitle.setText("Nhận đơn, chế biến và chuyển sang trạng thái sẵn sàng giao.");
 
         RecyclerView rvOrders = findViewById(R.id.rvAdminOrders);
         adminOrderAdapter = new AdminOrderAdapter(this::showOrderDetailDialog);

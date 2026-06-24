@@ -14,8 +14,10 @@ import com.example.cuisine_finder.models.Order;
 import com.example.cuisine_finder.models.OrderItem;
 import com.example.cuisine_finder.models.PaymentMethod;
 import com.example.cuisine_finder.repositories.OrderRepository;
+import com.example.cuisine_finder.models.User;
 import com.example.cuisine_finder.utils.InsetUtils;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
@@ -54,6 +56,7 @@ public class CheckoutActivity extends AppCompatActivity {
 
         initViews();
         bindSummary();
+        loadSavedCustomerInfo();
         btnConfirmOrder.setOnClickListener(v -> submitOrder());
     }
 
@@ -72,9 +75,27 @@ public class CheckoutActivity extends AppCompatActivity {
     }
 
     private void bindSummary() {
-        tvCheckoutRestaurantName.setText(restaurantName != null ? restaurantName : "Quan an");
-        tvCheckoutSummary.setText(getCartItemCount() + " mon trong gio hang");
+        tvCheckoutRestaurantName.setText(restaurantName != null ? restaurantName : "Quán ăn");
+        tvCheckoutSummary.setText(getCartItemCount() + " món trong giỏ hàng");
         tvCheckoutTotal.setText(formatPrice(getCartTotal()));
+    }
+
+    private void loadSavedCustomerInfo() {
+        String currentUserId = FirebaseAuth.getInstance().getUid();
+        if (currentUserId == null) return;
+
+        new com.example.cuisine_finder.repositories.UserRepository().getUser(currentUserId)
+                .addOnSuccessListener(documentSnapshot -> {
+                    User user = documentSnapshot.toObject(User.class);
+                    if (user != null) {
+                        if (user.getPhone() != null && !user.getPhone().isEmpty() && etCustomerPhone.getText().toString().isEmpty()) {
+                            etCustomerPhone.setText(user.getPhone());
+                        }
+                        if (user.getAddress() != null && !user.getAddress().isEmpty() && etDeliveryAddress.getText().toString().isEmpty()) {
+                            etDeliveryAddress.setText(user.getAddress());
+                        }
+                    }
+                });
     }
 
     private void submitOrder() {
@@ -82,7 +103,7 @@ public class CheckoutActivity extends AppCompatActivity {
 
         String customerId = FirebaseAuth.getInstance().getUid();
         if (customerId == null) {
-            Toast.makeText(this, "Vui long dang nhap de dat hang", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Vui lòng đăng nhập để đặt hàng", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -91,25 +112,29 @@ public class CheckoutActivity extends AppCompatActivity {
         String note = etDeliveryNote.getText().toString().trim();
 
         if (phone.isEmpty()) {
-            etCustomerPhone.setError("Bat buoc");
+            etCustomerPhone.setError("Bắt buộc");
             return;
         }
         if (address.isEmpty()) {
-            etDeliveryAddress.setError("Bat buoc");
+            etDeliveryAddress.setError("Bắt buộc");
             return;
         }
         if (restaurantId == null || restaurantId.isEmpty() || cartItems.isEmpty()) {
-            Toast.makeText(this, "Thong tin gio hang khong hop le", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Thông tin giỏ hàng không hợp lệ", Toast.LENGTH_SHORT).show();
             return;
         }
 
         Order order = buildOrder(customerId, phone, address, note);
         submitting = true;
         btnConfirmOrder.setEnabled(false);
-        btnConfirmOrder.setText("Dang tao don...");
+        btnConfirmOrder.setText("Đang tạo đơn...");
         orderRepository.createOrder(order)
                 .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(this, "Dat hang thanh cong", Toast.LENGTH_SHORT).show();
+                    // Save last used phone and address to user profile
+                    FirebaseFirestore.getInstance().collection("users").document(customerId)
+                            .update("phone", phone, "address", address);
+
+                    Toast.makeText(this, "Đặt hàng thành công", Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(this, ActiveOrderActivity.class);
                     intent.putExtra(ActiveOrderActivity.EXTRA_ORDER_ID, documentReference.getId());
                     startActivity(intent);
@@ -118,8 +143,8 @@ public class CheckoutActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     submitting = false;
                     btnConfirmOrder.setEnabled(true);
-                    btnConfirmOrder.setText("Xac nhan dat hang");
-                    Toast.makeText(this, "Khong tao duoc don: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    btnConfirmOrder.setText("Xác nhận đặt hàng");
+                    Toast.makeText(this, "Không tạo được đơn: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -168,7 +193,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 }
             }
         } catch (JSONException e) {
-            Toast.makeText(this, "Khong doc duoc gio hang", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Không đọc được giỏ hàng", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -192,6 +217,6 @@ public class CheckoutActivity extends AppCompatActivity {
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("vi", "VN"));
         symbols.setGroupingSeparator('.');
         DecimalFormat df = new DecimalFormat("#,###", symbols);
-        return df.format((long) price) + "d";
+        return df.format((long) price) + "đ";
     }
 }

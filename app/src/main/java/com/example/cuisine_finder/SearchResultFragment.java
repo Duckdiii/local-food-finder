@@ -50,11 +50,8 @@ public class SearchResultFragment extends Fragment {
     private TextView btnFilter;
     private TextView btnClearFilter;
     private TextView tvFilterSummary;
-    private TextView tvResultHeadline;
-    private TextView tvResultSubline;
-    private TextView tvSummaryTotal;
-    private TextView tvSummaryFoods;
-    private TextView tvSummaryPlaces;
+    private View rowFilterChips;
+
     private View cardHistory;
     private ChipGroup chipGroupHistory;
     private TextView btnClearHistory;
@@ -102,11 +99,8 @@ public class SearchResultFragment extends Fragment {
         btnFilter = view.findViewById(R.id.btnFilter);
         btnClearFilter = view.findViewById(R.id.btnClearFilter);
         tvFilterSummary = view.findViewById(R.id.tvFilterSummary);
-        tvResultHeadline = view.findViewById(R.id.tvResultHeadline);
-        tvResultSubline = view.findViewById(R.id.tvResultSubline);
-        tvSummaryTotal = view.findViewById(R.id.tvSummaryTotal);
-        tvSummaryFoods = view.findViewById(R.id.tvSummaryFoods);
-        tvSummaryPlaces = view.findViewById(R.id.tvSummaryPlaces);
+        rowFilterChips = view.findViewById(R.id.rowFilterChips);
+
         rvSearchResults = view.findViewById(R.id.rvSearchResults);
         cardHistory = view.findViewById(R.id.cardHistory);
         chipGroupHistory = view.findViewById(R.id.chipGroupHistory);
@@ -597,29 +591,13 @@ public class SearchResultFragment extends Fragment {
         tvFilterSummary.setVisibility(hasFilters ? View.VISIBLE : View.GONE);
         tvFilterSummary.setText(summary);
         btnClearFilter.setVisibility(hasFilters ? View.VISIBLE : View.GONE);
+        if (rowFilterChips != null) {
+            rowFilterChips.setVisibility(hasFilters ? View.VISIBLE : View.GONE);
+        }
     }
 
     private void updateResultSummary(int foodCount, int placeCount) {
-        int totalCount = foodCount + placeCount;
-        String trimmedQuery = currentQuery != null ? currentQuery.trim() : "";
-
-        if (trimmedQuery.isEmpty()) {
-            tvResultHeadline.setText("Khám phá theo từ khóa");
-            tvResultSubline.setText("Nhập tên món ăn hoặc quán ăn để xem kết quả phù hợp nhất.");
-        } else {
-            tvResultHeadline.setText("Kết quả cho \"" + trimmedQuery + "\"");
-            if (totalCount == 0) {
-                tvResultSubline.setText(emptyResultSubtitle());
-            } else if (!TextUtils.isEmpty(buildActiveFilterSummary())) {
-                tvResultSubline.setText(totalCount + " kết quả sau khi áp dụng bộ lọc hiện tại.");
-            } else {
-                tvResultSubline.setText("Các kết quả được sắp theo độ phù hợp và rating.");
-            }
-        }
-
-        tvSummaryTotal.setText(String.valueOf(totalCount));
-        tvSummaryFoods.setText(String.valueOf(foodCount));
-        tvSummaryPlaces.setText(String.valueOf(placeCount));
+        // Summary stats removed; results are shown directly in the list
     }
 
     private String emptyResultSubtitle() {

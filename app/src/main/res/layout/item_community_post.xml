@@ -69,7 +69,7 @@
             android:layout_marginStart="4dp"
             android:gravity="center"
             android:contentDescription="Báo cáo bài viết"
-            android:text="📣"
+            android:text="⋮"
             android:textColor="@color/text_gray"
             android:textSize="17sp" />
     </LinearLayout>

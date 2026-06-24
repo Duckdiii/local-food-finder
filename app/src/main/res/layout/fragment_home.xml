@@ -162,12 +162,15 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tvHomeViewAllFriends"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Xem tất cả"
                     android:textColor="@color/orange_main"
                     android:textSize="13sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
@@ -305,12 +308,15 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tvHomeMapNearby"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Bản đồ"
                     android:textColor="@color/orange_main"
                     android:textSize="13sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true" />
             </LinearLayout>
 
             <include

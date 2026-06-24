@@ -73,6 +73,8 @@ public class HomeFragment extends Fragment {
 
     private TextView btnRandomSuggestion;
 
+    private static final int LOCATION_PERMISSION_REQUEST = 1002;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -113,17 +115,31 @@ public class HomeFragment extends Fragment {
         loadUserWelcomeName();
         loadStories();
 
-        // Xử lý click cho item gần đây (giả lập)
-        view.post(() -> {
-            View nearbyItem = view.findViewById(R.id.tvPlaceName);
-            if (nearbyItem != null) {
-                View containerLayout = (View) nearbyItem.getParent();
-                containerLayout.setOnClickListener(v -> {
-                    Intent intent = new Intent(getActivity(), FoodPlaceDetailActivity.class);
-                    startActivity(intent);
-                });
-            }
-        });
+        // Load location-based nearby restaurant recommendation
+        checkLocationAndLoadNearby();
+
+        // Setup Map text click listener
+        TextView tvHomeMapNearby = view.findViewById(R.id.tvHomeMapNearby);
+        if (tvHomeMapNearby != null) {
+            tvHomeMapNearby.setOnClickListener(v -> {
+                if (getActivity() != null) {
+                    com.google.android.material.bottomnavigation.BottomNavigationView bottomNav =
+                            getActivity().findViewById(R.id.bottomNavigation);
+                    if (bottomNav != null) {
+                        bottomNav.setSelectedItemId(R.id.nav_explore);
+                    }
+                }
+            });
+        }
+
+        // Setup View All Friends click listener
+        TextView tvHomeViewAllFriends = view.findViewById(R.id.tvHomeViewAllFriends);
+        if (tvHomeViewAllFriends != null) {
+            tvHomeViewAllFriends.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), com.example.cuisine_finder.activities.FriendsActivity.class);
+                startActivity(intent);
+            });
+        }
 
         return view;
     }
@@ -265,9 +281,195 @@ public class HomeFragment extends Fragment {
                     Story story = doc.toObject(Story.class);
                     if (story != null) storyList.add(story);
                 }
-                storyAdapter.notifyDataSetChanged();
+                if (storyList.isEmpty()) {
+                    createMockStories();
+                } else {
+                    storyAdapter.notifyDataSetChanged();
+                }
             }
         });
+    }
+
+    private void createMockStories() {
+        String[] names = {"Nguyễn Văn A", "Trần Thị B", "Lê Văn C"};
+        String[] captions = {"🍜 Bún bò Huế ngon xỉu!", "🍕 Pizza tối nay nè", "☕ Cà phê sáng sảng khoái"};
+        String[] storyImages = {
+            "https://images.unsplash.com/photo-1583085293629-77ab47743d22?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=80"
+        };
+        String[] avatars = {
+            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
+            "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
+            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80"
+        };
+
+        for (int i = 0; i < names.length; i++) {
+            Story story = new Story();
+            story.setUserName(names[i]);
+            story.setCaption(captions[i]);
+            story.setImageUrl(storyImages[i]);
+            story.setUserAvatarUrl(avatars[i]);
+            story.setUserId("mock_user_" + i);
+            storyRepository.uploadStory(story);
+            storyList.add(story);
+        }
+        storyAdapter.notifyDataSetChanged();
+    }
+
+    private void checkLocationAndLoadNearby() {
+        if (!isAdded()) return;
+        if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.ACCESS_FINE_LOCATION)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST);
+            return;
+        }
+        retrieveLocationAndLoad();
+    }
+
+    private void retrieveLocationAndLoad() {
+        if (!isAdded()) return;
+        android.location.LocationManager lm = (android.location.LocationManager)
+                requireContext().getSystemService(android.content.Context.LOCATION_SERVICE);
+        if (lm == null) {
+            loadFallbackNearbyRestaurant();
+            return;
+        }
+        try {
+            android.location.Location last = lm.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER);
+            if (last == null) last = lm.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER);
+
+            if (last != null) {
+                loadNearbyRestaurant(last.getLatitude(), last.getLongitude());
+            } else {
+                android.location.LocationListener listener = new android.location.LocationListener() {
+                    @Override
+                    public void onLocationChanged(@NonNull android.location.Location loc) {
+                        if (!isAdded()) return;
+                        loadNearbyRestaurant(loc.getLatitude(), loc.getLongitude());
+                    }
+                    @Override public void onStatusChanged(String provider, int status, Bundle extras) {}
+                    @Override public void onProviderEnabled(@NonNull String provider) {}
+                    @Override public void onProviderDisabled(@NonNull String provider) {}
+                };
+                if (lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER)) {
+                    lm.requestSingleUpdate(android.location.LocationManager.GPS_PROVIDER, listener,
+                            requireActivity().getMainLooper());
+                } else if (lm.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER)) {
+                    lm.requestSingleUpdate(android.location.LocationManager.NETWORK_PROVIDER, listener,
+                            requireActivity().getMainLooper());
+                } else {
+                    loadFallbackNearbyRestaurant();
+                }
+            }
+        } catch (SecurityException e) {
+            loadFallbackNearbyRestaurant();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == LOCATION_PERMISSION_REQUEST) {
+            if (grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                retrieveLocationAndLoad();
+            } else {
+                loadFallbackNearbyRestaurant();
+            }
+        }
+    }
+
+    private void loadNearbyRestaurant(double userLat, double userLon) {
+        placeRepository.getCachedApprovedPlaces(new PlaceRepository.OnPlacesLoadedCallback() {
+            @Override
+            public void onLoaded(List<FoodPlace> places) {
+                if (!isAdded() || places.isEmpty()) return;
+                FoodPlace nearest = null;
+                double minDistance = Double.MAX_VALUE;
+                for (FoodPlace place : places) {
+                    double dist = distanceKm(userLat, userLon, place.getLatitude(), place.getLongitude());
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nearest = place;
+                    }
+                }
+                if (nearest != null) {
+                    bindNearbyRestaurant(nearest, minDistance);
+                }
+            }
+
+            @Override
+            public void onError() {
+                loadFallbackNearbyRestaurant();
+            }
+        });
+    }
+
+    private void loadFallbackNearbyRestaurant() {
+        placeRepository.getCachedApprovedPlaces(new PlaceRepository.OnPlacesLoadedCallback() {
+            @Override
+            public void onLoaded(List<FoodPlace> places) {
+                if (!isAdded() || places.isEmpty()) return;
+                bindNearbyRestaurant(places.get(0), -1.0);
+            }
+            @Override
+            public void onError() {}
+        });
+    }
+
+    private void bindNearbyRestaurant(FoodPlace place, double distanceKm) {
+        if (!isAdded() || getView() == null) return;
+        ImageView ivPlaceImage = getView().findViewById(R.id.ivPlaceImage);
+        TextView tvPlaceName = getView().findViewById(R.id.tvPlaceName);
+        TextView tvPlaceInfo = getView().findViewById(R.id.tvPlaceInfo);
+        TextView tvPlaceStats = getView().findViewById(R.id.tvPlaceStats);
+        View cardNearby = getView().findViewById(R.id.cardNearbyRestaurant);
+
+        if (tvPlaceName != null) tvPlaceName.setText(place.getName() != null ? place.getName() : "Quán ăn");
+        if (tvPlaceInfo != null) {
+            String info = (place.getFoodType() != null ? place.getFoodType() : "Món ăn")
+                    + " • " + (place.getAddress() != null ? place.getAddress() : "Chưa có địa chỉ");
+            tvPlaceInfo.setText(info);
+        }
+        if (tvPlaceStats != null) {
+            if (distanceKm >= 0) {
+                String distStr;
+                if (distanceKm < 1.0) {
+                    distStr = String.format(Locale.getDefault(), "%d m", (int) (distanceKm * 1000));
+                } else {
+                    distStr = String.format(Locale.getDefault(), "%.1f km", distanceKm);
+                }
+                tvPlaceStats.setText(String.format(Locale.getDefault(), "⭐ %.1f • %s", place.getAverageRating(), distStr));
+            } else {
+                tvPlaceStats.setText(String.format(Locale.getDefault(), "⭐ %.1f", place.getAverageRating()));
+            }
+        }
+        if (ivPlaceImage != null) {
+            if (place.getImageUrls() != null && !place.getImageUrls().isEmpty()) {
+                Glide.with(this).load(place.getImageUrls().get(0))
+                        .placeholder(R.drawable.bg_image_placeholder).centerCrop().into(ivPlaceImage);
+            } else {
+                ivPlaceImage.setImageResource(R.drawable.bg_image_placeholder);
+            }
+        }
+        if (cardNearby != null) {
+            cardNearby.setOnClickListener(v -> {
+                if (place.getId() != null) {
+                    Intent intent = new Intent(getActivity(), FoodPlaceDetailActivity.class);
+                    intent.putExtra(FoodPlaceDetailActivity.EXTRA_PLACE_ID, place.getId());
+                    startActivity(intent);
+                }
+            });
+        }
+    }
+
+    private double distanceKm(double lat1, double lon1, double lat2, double lon2) {
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     // ─── Random suggestion ────────────────────────────────────────────────────
@@ -547,6 +749,16 @@ public class HomeFragment extends Fragment {
             } else {
                 holder.ivFeaturedFood.setImageResource(R.drawable.bg_image_placeholder);
             }
+
+            holder.itemView.setOnClickListener(v -> {
+                if (foodItem.getPlaceId() != null) {
+                    Intent intent = new Intent(holder.itemView.getContext(), FoodPlaceDetailActivity.class);
+                    intent.putExtra(FoodPlaceDetailActivity.EXTRA_PLACE_ID, foodItem.getPlaceId());
+                    holder.itemView.getContext().startActivity(intent);
+                } else {
+                    Toast.makeText(holder.itemView.getContext(), "Món ăn chưa có thông tin quán", Toast.LENGTH_SHORT).show();
+                }
+            });
         }
 
         @Override
@@ -638,6 +850,7 @@ public class HomeFragment extends Fragment {
             Glide.with(holder.ivThumb.getContext()).load(story.getImageUrl()).placeholder(R.drawable.bg_image_placeholder).into(holder.ivThumb);
             holder.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(getActivity(), StoryViewerActivity.class);
+                intent.putExtra("START_INDEX", position);
                 startActivity(intent);
             });
         }

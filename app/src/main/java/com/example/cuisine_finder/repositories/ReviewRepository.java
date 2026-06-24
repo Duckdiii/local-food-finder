@@ -27,7 +27,12 @@ public class ReviewRepository {
 
         for (Uri uri : imageUris) {
             StorageReference fileRef = storageRef.child(UUID.randomUUID().toString() + ".jpg");
-            uploadTasks.add(fileRef.putFile(uri).continueWithTask(task -> fileRef.getDownloadUrl()));
+            uploadTasks.add(fileRef.putFile(uri).continueWithTask(task -> {
+                if (!task.isSuccessful() && task.getException() != null) {
+                    throw task.getException();
+                }
+                return fileRef.getDownloadUrl();
+            }));
         }
 
         return Tasks.whenAllSuccess(uploadTasks);

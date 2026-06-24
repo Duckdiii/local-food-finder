@@ -31,7 +31,7 @@ public class CommunityPostAdapter extends RecyclerView.Adapter<CommunityPostAdap
         void onShareClicked(CommunityPost post);
         void onPlaceClicked(CommunityPost post);
         void onTagClicked(String tag);
-        void onReportClicked(CommunityPost post);
+        void onReportClicked(CommunityPost post, View anchorView);
     }
 
     private final List<CommunityPost> posts = new ArrayList<>();
@@ -263,7 +263,7 @@ public class CommunityPostAdapter extends RecyclerView.Adapter<CommunityPostAdap
             tvCommentCount.setOnClickListener(commentClick);
 
             btnShare.setOnClickListener(v -> listener.onShareClicked(post));
-            btnMore.setOnClickListener(v -> listener.onReportClicked(post));
+            btnMore.setOnClickListener(v -> listener.onReportClicked(post, v));
         }
 
         private boolean hasPlaceInfo(CommunityPost post) {

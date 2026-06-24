@@ -134,7 +134,7 @@ public class EditProfileActivity extends AppCompatActivity {
     }
 
     private void uploadAvatarAndSave(String name, String email, String phone, String password) {
-        String path = "avatars/" + currentUserId + ".jpg";
+        String path = "community_posts/avatars/" + currentUserId + ".jpg";
         StorageReference ref = FirebaseStorage.getInstance().getReference(path);
 
         ref.putFile(selectedImageUri)
@@ -178,6 +178,7 @@ public class EditProfileActivity extends AppCompatActivity {
         if (!authTasks.isEmpty()) {
             Tasks.whenAllComplete(authTasks).addOnCompleteListener(task -> {
                 boolean allSuccessful = true;
+                boolean requiresReauth = false;
                 StringBuilder errorMessage = new StringBuilder();
 
                 for (Task<Void> subTask : authTasks) {
@@ -185,6 +186,9 @@ public class EditProfileActivity extends AppCompatActivity {
                         allSuccessful = false;
                         if (subTask.getException() != null) {
                             errorMessage.append(subTask.getException().getMessage()).append("\n");
+                            if (subTask.getException() instanceof com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException) {
+                                requiresReauth = true;
+                            }
                         }
                     }
                 }
@@ -192,13 +196,63 @@ public class EditProfileActivity extends AppCompatActivity {
                 if (allSuccessful) {
                     saveUserToFirestore(name, email, phone, avatarUrl);
                 } else {
-                    setLoadingState(false);
-                    Toast.makeText(this, "Lỗi cập nhật bảo mật:\n" + errorMessage.toString() + "Vui lòng đăng nhập lại để cập nhật Email/Mật khẩu.", Toast.LENGTH_LONG).show();
+                    if (requiresReauth) {
+                        handleReauthenticationAndRetry(name, email, phone, password, avatarUrl);
+                    } else {
+                        setLoadingState(false);
+                        Toast.makeText(this, "Lỗi cập nhật bảo mật:\n" + errorMessage.toString(), Toast.LENGTH_LONG).show();
+                    }
                 }
             });
         } else {
             saveUserToFirestore(name, email, phone, avatarUrl);
         }
+    }
+
+    private void handleReauthenticationAndRetry(String name, String email, String phone, String password, String avatarUrl) {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Xác thực lại");
+        builder.setMessage("Để đổi Email hoặc Mật khẩu, vui lòng nhập mật khẩu hiện tại của bạn:");
+
+        final EditText input = new EditText(this);
+        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        builder.setView(input);
+
+        builder.setPositiveButton("Xác nhận", (dialog, which) -> {
+            String currentPassword = input.getText().toString().trim();
+            if (currentPassword.isEmpty()) {
+                Toast.makeText(this, "Mật khẩu không được để trống", Toast.LENGTH_SHORT).show();
+                setLoadingState(false);
+                return;
+            }
+            reauthenticateAndSave(currentPassword, name, email, phone, password, avatarUrl);
+        });
+
+        builder.setNegativeButton("Hủy", (dialog, which) -> {
+            setLoadingState(false);
+            dialog.cancel();
+        });
+
+        builder.show();
+    }
+
+    private void reauthenticateAndSave(String currentPassword, String name, String email, String phone, String password, String avatarUrl) {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null || firebaseUser.getEmail() == null) {
+            setLoadingState(false);
+            return;
+        }
+
+        setLoadingState(true);
+        AuthCredential credential = EmailAuthProvider.getCredential(firebaseUser.getEmail(), currentPassword);
+        firebaseUser.reauthenticate(credential)
+                .addOnSuccessListener(aVoid -> {
+                    updateAuthAndFirestore(name, email, phone, password, avatarUrl);
+                })
+                .addOnFailureListener(e -> {
+                    setLoadingState(false);
+                    Toast.makeText(this, "Xác thực thất bại: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
 
     private void saveUserToFirestore(String name, String email, String phone, String avatarUrl) {

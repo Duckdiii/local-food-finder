@@ -306,7 +306,7 @@ public class AddRestaurantFragment extends Fragment {
 
     private void uploadImageThenSubmit(String name, @Nullable FirebaseUser user) {
         String uid  = user != null ? user.getUid() : "anon";
-        String path = "place_submissions/" + System.currentTimeMillis() + "_" + uid + ".jpg";
+        String path = "community_posts/place_submissions/" + System.currentTimeMillis() + "_" + uid + ".jpg";
         StorageReference ref = FirebaseStorage.getInstance().getReference(path);
 
         ref.putFile(selectedImageUri)

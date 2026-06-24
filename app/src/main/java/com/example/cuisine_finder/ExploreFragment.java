@@ -43,6 +43,7 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.BoundingBox;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.CustomZoomButtonsController;
+import org.osmdroid.views.overlay.Polygon;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.Marker;
 import java.util.ArrayList;
@@ -92,6 +93,7 @@ public class ExploreFragment extends Fragment {
     // Map overlays
     private RadiusMarkerClusterer markerClusterer;
     private Marker myLocationMarker;
+    private Polygon locationCircleOverlay;
     private final Map<String, Marker> markersByPlaceId = new HashMap<>();
     private final Map<String, Integer> markerBaseColors = new HashMap<>();
     private String selectedMarkerId = null;
@@ -355,6 +357,7 @@ public class ExploreFragment extends Fragment {
 
     private void handleResults(List<FoodPlace> results) {
         clearMarkers();
+        updateLocationCircle();
         foundPlaces.clear();
 
         if (results.isEmpty()) {
@@ -447,11 +450,47 @@ public class ExploreFragment extends Fragment {
     }
 
     private void clearMarkers() {
-        if (markerClusterer != null) markerClusterer.getItems().clear();
+        if (mapView != null && markerClusterer != null) {
+            mapView.getOverlays().remove(markerClusterer);
+        }
+        markerClusterer = new RadiusMarkerClusterer(requireContext());
+        markerClusterer.setRadius(100);
+        if (mapView != null) {
+            mapView.getOverlays().add(markerClusterer);
+        }
         markersByPlaceId.clear();
         markerBaseColors.clear();
         selectedMarkerId = null;
+
+        if (mapView != null && locationCircleOverlay != null) {
+            mapView.getOverlays().remove(locationCircleOverlay);
+            locationCircleOverlay = null;
+        }
         if (mapView != null) mapView.invalidate();
+    }
+
+    private void updateLocationCircle() {
+        if (mapView == null) return;
+
+        if (locationCircleOverlay != null) {
+            mapView.getOverlays().remove(locationCircleOverlay);
+            locationCircleOverlay = null;
+        }
+
+        if (filterNearMe && myCurrentLocation != null) {
+            locationCircleOverlay = new Polygon(mapView);
+            ArrayList<GeoPoint> circlePoints = Polygon.pointsAsCircle(myCurrentLocation, NEAR_ME_RADIUS_KM * 1000.0);
+            locationCircleOverlay.setPoints(circlePoints);
+
+            // Styled as semi-transparent orange matching theme/app aesthetics
+            locationCircleOverlay.setFillColor(Color.parseColor("#15FF7A30"));
+            locationCircleOverlay.setStrokeColor(Color.parseColor("#FFFF7A30"));
+            locationCircleOverlay.setStrokeWidth(2.0f);
+
+            // Add it at the bottom (index 0) so it's under markers
+            mapView.getOverlays().add(0, locationCircleOverlay);
+        }
+        mapView.invalidate();
     }
 
     /** Draws a pin-shaped bitmap: filled circle + triangle tail + white center dot. */
@@ -498,11 +537,20 @@ public class ExploreFragment extends Fragment {
 
                     if (isAdded()) {
                         requireActivity().runOnUiThread(() -> {
-                            addMarker(place, point);
-                            mapView.invalidate();
-                            if (foundPlaces.size() == 1) {
-                                mapView.getController().animateTo(point);
-                                mapView.getController().setZoom(17.0);
+                            boolean stillFound = false;
+                            for (FoodPlace fp : foundPlaces) {
+                                if (fp.getId() != null && fp.getId().equals(place.getId())) {
+                                    stillFound = true;
+                                    break;
+                                }
+                            }
+                            if (stillFound) {
+                                addMarker(place, point);
+                                mapView.invalidate();
+                                if (foundPlaces.size() == 1) {
+                                    mapView.getController().animateTo(point);
+                                    mapView.getController().setZoom(17.0);
+                                }
                             }
                         });
                     }

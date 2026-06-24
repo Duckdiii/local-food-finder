@@ -211,7 +211,7 @@ public class ChatRoomActivity extends AppCompatActivity implements ChatMessageAd
         recyclerView.scrollToPosition(adapter.getItemCount() - 1);
 
         com.google.firebase.storage.StorageReference reference = FirebaseStorage.getInstance().getReference()
-                .child("chat_images/" + roomId + "/" + UUID.randomUUID());
+                .child("community_posts/chat_images/" + roomId + "/" + UUID.randomUUID());
         reference.putFile(uri).continueWithTask(task -> {
             if (!task.isSuccessful() && task.getException() != null) throw task.getException();
             return reference.getDownloadUrl();

@@ -200,7 +200,7 @@ public class ProfileFragment extends Fragment {
             btnOrderManagement.setOnClickListener(null);
             return;
         }
-        tvOrderManagementTitle.setText(merchantHasRestaurants ? "Don hang nha hang" : "Don giao hang");
+        tvOrderManagementTitle.setText(merchantHasRestaurants ? "Đơn hàng nhà hàng" : "Đơn giao hàng");
         btnOrderManagement.setOnClickListener(v -> {
             Intent intent = new Intent(getActivity(), merchantHasRestaurants ? AdminOrdersActivity.class : ShipperOrdersActivity.class);
             startActivity(intent);
