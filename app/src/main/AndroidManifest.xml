@@ -54,6 +54,18 @@
             android:exported="false"
             android:theme="@style/Theme.Cuisine_finder" />
         <activity
+            android:name=".activities.StoryViewerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+        <activity
+            android:name=".activities.AchievementsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+        <activity
+            android:name=".activities.StatisticsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+        <activity
             android:name=".activities.FriendsActivity"
             android:exported="false"
             android:theme="@style/Theme.Cuisine_finder" />

@@ -440,23 +440,54 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
                 return;
             }
 
+            btnSubmit.setEnabled(false);
+            btnSubmit.setText("Đang gửi...");
+
             Review review = new Review();
             review.setPlaceId(currentPlace.getId());
             review.setPlaceName(currentPlace.getName());
             review.setRating(rating);
             review.setComment(comment);
             review.setUserId(currentUserId);
-            review.setUserName("Người dùng"); 
-            // review.setImageUrls(...); // Here you would upload to Storage first
+            
+            // Get user info first
+            new com.example.cuisine_finder.repositories.UserRepository().getUser(currentUserId).addOnSuccessListener(userDoc -> {
+                com.example.cuisine_finder.models.User user = userDoc.toObject(com.example.cuisine_finder.models.User.class);
+                if (user != null) {
+                    review.setUserName(user.getFullName());
+                } else {
+                    review.setUserName("Người dùng");
+                }
 
-            reviewRepository.addReview(review).addOnSuccessListener(aVoid -> {
-                Toast.makeText(this, "Cảm ơn bạn đã đánh giá!", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
+                if (!selectedImageUris.isEmpty()) {
+                    // Upload images first
+                    reviewRepository.uploadImages(selectedImageUris).addOnSuccessListener(urls -> {
+                        review.setImageUrls(urls);
+                        saveReviewToFirestore(review, dialog, btnSubmit);
+                    }).addOnFailureListener(e -> {
+                        Toast.makeText(this, "Lỗi tải ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        btnSubmit.setEnabled(true);
+                        btnSubmit.setText("Gửi đánh giá");
+                    });
+                } else {
+                    saveReviewToFirestore(review, dialog, btnSubmit);
+                }
             });
         });
 
         dialog.setContentView(view);
         dialog.show();
+    }
+
+    private void saveReviewToFirestore(Review review, BottomSheetDialog dialog, TextView btnSubmit) {
+        reviewRepository.addReview(review).addOnSuccessListener(aVoid -> {
+            Toast.makeText(this, "Cảm ơn bạn đã đánh giá!", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        }).addOnFailureListener(e -> {
+            Toast.makeText(this, "Lỗi gửi đánh giá: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            btnSubmit.setEnabled(true);
+            btnSubmit.setText("Gửi đánh giá");
+        });
     }
 
     private FoodPlace getMockPlace() {

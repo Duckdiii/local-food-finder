@@ -17,20 +17,25 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.cuisine_finder.activities.FoodPlaceDetailActivity;
 import com.example.cuisine_finder.activities.PlacesByCategoryActivity;
+import com.example.cuisine_finder.activities.StoryViewerActivity;
 import com.example.cuisine_finder.activities.UserProfileActivity;
 import com.example.cuisine_finder.models.FoodCategory;
 import com.example.cuisine_finder.models.FoodItem;
 import com.example.cuisine_finder.models.FoodPlace;
 import com.example.cuisine_finder.models.Friendship;
+import com.example.cuisine_finder.models.Story;
 import com.example.cuisine_finder.models.User;
 import com.example.cuisine_finder.repositories.CategoryRepository;
 import com.example.cuisine_finder.repositories.FoodItemRepository;
 import com.example.cuisine_finder.repositories.FriendshipRepository;
 import com.example.cuisine_finder.repositories.PlaceRepository;
+import com.example.cuisine_finder.repositories.StoryRepository;
 import com.example.cuisine_finder.repositories.UserRepository;
 import com.example.cuisine_finder.services.AuthService;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.util.ArrayList;
@@ -43,15 +48,20 @@ public class HomeFragment extends Fragment {
 
     private static final double FEATURED_MIN_RATING = 4.8d;
 
-    private RecyclerView rvFriends, rvCategories, rvFeaturedFood;
+    private RecyclerView rvFriends, rvCategories, rvFeaturedFood, rvTrendingPlaces, rvStories;
     private FriendsAdapter friendsAdapter;
     private CategoryAdapter categoryAdapter;
     private FeaturedFoodAdapter featuredFoodAdapter;
+    private TrendingPlaceAdapter trendingAdapter;
+    private StoryAdapter storyAdapter;
+    
     private TextView tvWelcome;
 
     private List<User> friendsList = new ArrayList<>();
     private List<FoodCategory> categoriesList = new ArrayList<>();
     private List<FoodItem> featuredFoodList = new ArrayList<>();
+    private List<FoodPlace> trendingList = new ArrayList<>();
+    private List<Story> storyList = new ArrayList<>();
 
     private AuthService authService;
     private FriendshipRepository friendshipRepository;
@@ -59,6 +69,7 @@ public class HomeFragment extends Fragment {
     private CategoryRepository categoryRepository;
     private FoodItemRepository foodItemRepository;
     private PlaceRepository placeRepository;
+    private StoryRepository storyRepository;
 
     private TextView btnRandomSuggestion;
 
@@ -73,10 +84,13 @@ public class HomeFragment extends Fragment {
         categoryRepository = new CategoryRepository();
         foodItemRepository = new FoodItemRepository();
         placeRepository = new PlaceRepository();
+        storyRepository = new StoryRepository();
 
         rvFriends = view.findViewById(R.id.rvFriendsEating);
         rvCategories = view.findViewById(R.id.rvFoodCategories);
         rvFeaturedFood = view.findViewById(R.id.rvFeaturedFood);
+        rvTrendingPlaces = view.findViewById(R.id.rvTrendingPlaces);
+        rvStories = view.findViewById(R.id.rvStories);
         tvWelcome = view.findViewById(R.id.tvWelcome);
         btnRandomSuggestion = view.findViewById(R.id.btnRandomSuggestion);
         btnRandomSuggestion.setOnClickListener(v -> startRandomSuggestion());
@@ -95,7 +109,9 @@ public class HomeFragment extends Fragment {
         loadFriendsActivity();
         loadFoodCategories();
         loadFeaturedFoodItems();
+        loadTrendingPlaces();
         loadUserWelcomeName();
+        loadStories();
 
         // Xử lý click cho item gần đây (giả lập)
         view.post(() -> {
@@ -124,6 +140,14 @@ public class HomeFragment extends Fragment {
         featuredFoodAdapter = new FeaturedFoodAdapter(featuredFoodList);
         rvFeaturedFood.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvFeaturedFood.setAdapter(featuredFoodAdapter);
+
+        trendingAdapter = new TrendingPlaceAdapter(trendingList);
+        rvTrendingPlaces.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        rvTrendingPlaces.setAdapter(trendingAdapter);
+
+        storyAdapter = new StoryAdapter(storyList);
+        rvStories.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        rvStories.setAdapter(storyAdapter);
     }
 
     private void loadFriendsActivity() {
@@ -131,10 +155,6 @@ public class HomeFragment extends Fragment {
 
         String currentUserId = authService.getCurrentUser().getUid();
 
-        // Clear once BEFORE both async queries fire, not inside a callback.
-        // If clear() were inside getFriendsByRequester's callback, it could race
-        // against fetchFriendProfile completions from getFriendsByReceiver and wipe
-        // friends that were already added to the list.
         friendsList.clear();
         friendsAdapter.notifyDataSetChanged();
 
@@ -216,6 +236,36 @@ public class HomeFragment extends Fragment {
                 if (user != null && user.getFullName() != null) {
                     tvWelcome.setText("Xin chào, " + user.getFullName());
                 }
+            }
+        });
+    }
+
+    private void loadTrendingPlaces() {
+        placeRepository.getApprovedPlaces().orderBy("favoriteCount", Query.Direction.DESCENDING).limit(10).get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        trendingList.clear();
+                        for (DocumentSnapshot doc : task.getResult().getDocuments()) {
+                            FoodPlace place = doc.toObject(FoodPlace.class);
+                            if (place != null) {
+                                place.setId(doc.getId());
+                                trendingList.add(place);
+                            }
+                        }
+                        trendingAdapter.notifyDataSetChanged();
+                    }
+                });
+    }
+
+    private void loadStories() {
+        storyRepository.getActiveStories().get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                storyList.clear();
+                for (DocumentSnapshot doc : task.getResult().getDocuments()) {
+                    Story story = doc.toObject(Story.class);
+                    if (story != null) storyList.add(story);
+                }
+                storyAdapter.notifyDataSetChanged();
             }
         });
     }
@@ -507,6 +557,91 @@ public class HomeFragment extends Fragment {
                 tvFeaturedTag = itemView.findViewById(R.id.tvFeaturedTag);
                 tvFeaturedFoodName = itemView.findViewById(R.id.tvFeaturedFoodName);
                 tvFeaturedFoodRating = itemView.findViewById(R.id.tvFeaturedFoodRating);
+            }
+        }
+    }
+
+    private class TrendingPlaceAdapter extends RecyclerView.Adapter<TrendingPlaceAdapter.ViewHolder> {
+        private final List<FoodPlace> items;
+
+        TrendingPlaceAdapter(List<FoodPlace> items) {
+            this.items = items;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_trending_place, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            FoodPlace place = items.get(position);
+            holder.tvName.setText(place.getName());
+            holder.tvStats.setText(String.format(Locale.getDefault(), "❤ %d  ·  ✍ %d reviews", place.getFavoriteCount(), place.getReviewCount()));
+            
+            if (place.getImageUrls() != null && !place.getImageUrls().isEmpty()) {
+                Glide.with(getContext()).load(place.getImageUrls().get(0)).placeholder(R.drawable.bg_image_placeholder).into(holder.ivImage);
+            } else {
+                holder.ivImage.setImageResource(R.drawable.bg_image_placeholder);
+            }
+
+            holder.itemView.setOnClickListener(v -> {
+                Intent intent = new Intent(getActivity(), FoodPlaceDetailActivity.class);
+                intent.putExtra(FoodPlaceDetailActivity.EXTRA_PLACE_ID, place.getId());
+                startActivity(intent);
+            });
+        }
+
+        @Override
+        public int getItemCount() {
+            return items.size();
+        }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            private final ImageView ivImage;
+            private final TextView tvName;
+            private final TextView tvStats;
+
+            ViewHolder(View itemView) {
+                super(itemView);
+                ivImage = itemView.findViewById(R.id.ivTrendingImage);
+                tvName = itemView.findViewById(R.id.tvTrendingName);
+                tvStats = itemView.findViewById(R.id.tvTrendingStats);
+            }
+        }
+    }
+
+    private class StoryAdapter extends RecyclerView.Adapter<StoryAdapter.ViewHolder> {
+        private List<Story> items;
+        StoryAdapter(List<Story> items) { this.items = items; }
+
+        @NonNull @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_story_circle, parent, false));
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            Story story = items.get(position);
+            holder.tvName.setText(story.getUserName() != null ? story.getUserName() : "User");
+            Glide.with(getContext()).load(story.getImageUrl()).placeholder(R.drawable.bg_image_placeholder).into(holder.ivThumb);
+            holder.itemView.setOnClickListener(v -> {
+                Intent intent = new Intent(getActivity(), StoryViewerActivity.class);
+                startActivity(intent);
+            });
+        }
+
+        @Override public int getItemCount() { return items.size(); }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            ImageView ivThumb;
+            TextView tvName;
+            ViewHolder(View v) {
+                super(v);
+                ivThumb = v.findViewById(R.id.ivStoryThumb);
+                tvName = v.findViewById(R.id.tvStoryUserName);
             }
         }
     }

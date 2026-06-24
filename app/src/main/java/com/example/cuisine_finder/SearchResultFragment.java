@@ -23,7 +23,10 @@ import com.example.cuisine_finder.models.FoodItem;
 import com.example.cuisine_finder.models.FoodPlace;
 import com.example.cuisine_finder.repositories.FoodItemRepository;
 import com.example.cuisine_finder.repositories.FoodPlaceRepository;
+import com.example.cuisine_finder.utils.SearchHistoryManager;
 import com.google.android.gms.tasks.Tasks;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import java.text.DecimalFormat;
@@ -52,10 +55,15 @@ public class SearchResultFragment extends Fragment {
     private TextView tvSummaryTotal;
     private TextView tvSummaryFoods;
     private TextView tvSummaryPlaces;
+    private View cardHistory;
+    private ChipGroup chipGroupHistory;
+    private TextView btnClearHistory;
+
     private RecyclerView rvSearchResults;
     private SearchResultAdapter adapter;
     private FoodItemRepository foodItemRepository;
     private FoodPlaceRepository foodPlaceRepository;
+    private SearchHistoryManager historyManager;
     private boolean dataLoaded;
 
     private final List<Object> displayList = new ArrayList<>();
@@ -79,6 +87,7 @@ public class SearchResultFragment extends Fragment {
             initialQuery = getArguments().getString("query", "");
         }
         currentQuery = initialQuery != null ? initialQuery.trim() : "";
+        historyManager = new SearchHistoryManager(requireContext());
     }
 
     @Nullable
@@ -99,12 +108,17 @@ public class SearchResultFragment extends Fragment {
         tvSummaryFoods = view.findViewById(R.id.tvSummaryFoods);
         tvSummaryPlaces = view.findViewById(R.id.tvSummaryPlaces);
         rvSearchResults = view.findViewById(R.id.rvSearchResults);
+        cardHistory = view.findViewById(R.id.cardHistory);
+        chipGroupHistory = view.findViewById(R.id.chipGroupHistory);
+        btnClearHistory = view.findViewById(R.id.btnClearHistory);
+
         view.findViewById(R.id.btnBack).setOnClickListener(v -> getParentFragmentManager().popBackStack());
 
         etSearchBox.setText(initialQuery);
         setupRecyclerView();
         setupSearch();
         setupFilterActions();
+        setupHistoryActions();
         updateFilterSummary();
         updateResultSummary(0, 0);
         loadSearchData();
@@ -121,10 +135,20 @@ public class SearchResultFragment extends Fragment {
     private void setupSearch() {
         etSearchBox.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                performSearch(etSearchBox.getText().toString());
+                String query = etSearchBox.getText().toString();
+                performSearch(query);
+                historyManager.saveSearch(query);
                 return true;
             }
             return false;
+        });
+
+        etSearchBox.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus && etSearchBox.getText().toString().isEmpty()) {
+                showHistory();
+            } else {
+                hideHistory();
+            }
         });
     }
 
@@ -135,6 +159,39 @@ public class SearchResultFragment extends Fragment {
             updateFilterSummary();
             applySearchAndFilters();
         });
+    }
+
+    private void setupHistoryActions() {
+        btnClearHistory.setOnClickListener(v -> {
+            historyManager.clearHistory();
+            hideHistory();
+        });
+    }
+
+    private void showHistory() {
+        List<String> history = historyManager.getHistory();
+        if (history.isEmpty()) {
+            hideHistory();
+            return;
+        }
+
+        chipGroupHistory.removeAllViews();
+        for (String query : history) {
+            Chip chip = new Chip(requireContext());
+            chip.setText(query);
+            chip.setOnClickListener(v -> {
+                etSearchBox.setText(query);
+                performSearch(query);
+                historyManager.saveSearch(query);
+                etSearchBox.clearFocus();
+            });
+            chipGroupHistory.addView(chip);
+        }
+        cardHistory.setVisibility(View.VISIBLE);
+    }
+
+    private void hideHistory() {
+        cardHistory.setVisibility(View.GONE);
     }
 
     private void loadSearchData() {
@@ -187,6 +244,7 @@ public class SearchResultFragment extends Fragment {
 
     private void performSearch(String query) {
         currentQuery = query != null ? query.trim() : "";
+        hideHistory();
         if (!dataLoaded) {
             loadSearchData();
             return;

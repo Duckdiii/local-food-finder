@@ -3,11 +3,15 @@ package com.example.cuisine_finder.adapters;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
 import com.example.cuisine_finder.R;
 import com.example.cuisine_finder.models.Review;
+import com.google.android.material.card.MaterialCardView;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -43,6 +47,8 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
 
     static class ReviewViewHolder extends RecyclerView.ViewHolder {
         TextView tvUserAvatar, tvUserName, tvRatingStars, tvReviewDate, tvComment;
+        LinearLayout layoutReviewImages;
+        View scrollReviewImages;
 
         public ReviewViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -51,6 +57,8 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
             tvRatingStars = itemView.findViewById(R.id.tvRatingStars);
             tvReviewDate = itemView.findViewById(R.id.tvReviewDate);
             tvComment = itemView.findViewById(R.id.tvComment);
+            layoutReviewImages = itemView.findViewById(R.id.layoutReviewImages);
+            scrollReviewImages = itemView.findViewById(R.id.scrollReviewImages);
         }
 
         public void bind(Review review) {
@@ -74,6 +82,38 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
             // Date
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
             tvReviewDate.setText(sdf.format(new Date(review.getCreatedAt())));
+
+            // Load Review Images
+            layoutReviewImages.removeAllViews();
+            if (review.getImageUrls() != null && !review.getImageUrls().isEmpty()) {
+                scrollReviewImages.setVisibility(View.VISIBLE);
+                for (String url : review.getImageUrls()) {
+                    MaterialCardView card = new MaterialCardView(itemView.getContext());
+                    card.setRadius(24f);
+                    card.setStrokeWidth(0);
+                    
+                    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(240, 240);
+                    params.setMargins(0, 0, 16, 0);
+                    card.setLayoutParams(params);
+
+                    ImageView iv = new ImageView(itemView.getContext());
+                    iv.setLayoutParams(new ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, 
+                            ViewGroup.LayoutParams.MATCH_PARENT));
+                    iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    
+                    card.addView(iv);
+                    layoutReviewImages.addView(card);
+                    
+                    Glide.with(itemView.getContext())
+                            .load(url)
+                            .placeholder(R.drawable.bg_image_placeholder)
+                            .into(iv);
+                }
+            } else {
+                scrollReviewImages.setVisibility(View.GONE);
+            }
         }
     }
 }
+

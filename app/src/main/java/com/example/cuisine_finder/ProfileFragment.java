@@ -6,14 +6,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import com.example.cuisine_finder.activities.AchievementsActivity;
 import com.example.cuisine_finder.activities.EditProfileActivity;
 import com.example.cuisine_finder.activities.FriendsActivity;
 import com.example.cuisine_finder.activities.NotificationsActivity;
-import com.example.cuisine_finder.models.Friendship;
 import com.example.cuisine_finder.models.User;
 import com.example.cuisine_finder.repositories.FriendshipRepository;
 import com.example.cuisine_finder.repositories.InteractionRepository;
@@ -33,7 +32,7 @@ public class ProfileFragment extends Fragment {
     private TextView tvExploredCount, tvContributedCount, tvReviewCount;
     private TextView tvFriendCount, tvPendingCount;
     private MaterialCardView cardFriends, cardPendingBadge;
-    private View btnNotifications, btnSettings, btnSignOut;
+    private View btnNotifications, btnSettings, btnSignOut, btnViewAchievements;
 
     private InteractionRepository interactionRepository;
     private ReviewRepository reviewRepository;
@@ -83,6 +82,7 @@ public class ProfileFragment extends Fragment {
         btnNotifications = view.findViewById(R.id.btnNotifications);
         btnSettings = view.findViewById(R.id.btnSettings);
         btnSignOut = view.findViewById(R.id.btnSignOut);
+        btnViewAchievements = view.findViewById(R.id.btnViewAchievements);
 
         cardFriends.setOnClickListener(v -> {
             startActivity(new Intent(getActivity(), FriendsActivity.class));
@@ -107,6 +107,11 @@ public class ProfileFragment extends Fragment {
             authService.signOut();
             navigateToSignIn();
         });
+
+        btnViewAchievements.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), AchievementsActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void loadUserProfile() {
@@ -130,28 +135,29 @@ public class ProfileFragment extends Fragment {
     private void loadFriendStats() {
         if (currentUserId == null) return;
 
-        AtomicInteger[] counts = { new AtomicInteger(0), new AtomicInteger(0) }; // [friends, pending]
+        AtomicInteger friendsCount = new AtomicInteger(0);
+        AtomicInteger pendingCount = new AtomicInteger(0);
         AtomicInteger queries = new AtomicInteger(2);
 
         friendshipRepository.getFriendsByRequester(currentUserId).addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
                 for (DocumentSnapshot doc : task.getResult().getDocuments()) {
                     String status = doc.getString("status");
-                    if (Friendship.STATUS_ACCEPTED.equals(status)) counts[0].incrementAndGet();
+                    if ("ACCEPTED".equals(status)) friendsCount.incrementAndGet();
                 }
             }
-            if (queries.decrementAndGet() == 0) updateFriendStatsUI(counts[0].get(), counts[1].get());
+            if (queries.decrementAndGet() == 0) updateFriendStatsUI(friendsCount.get(), pendingCount.get());
         });
 
         friendshipRepository.getFriendsByReceiver(currentUserId).addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
                 for (DocumentSnapshot doc : task.getResult().getDocuments()) {
                     String status = doc.getString("status");
-                    if (Friendship.STATUS_ACCEPTED.equals(status)) counts[0].incrementAndGet();
-                    else if (Friendship.STATUS_PENDING.equals(status)) counts[1].incrementAndGet();
+                    if ("ACCEPTED".equals(status)) friendsCount.incrementAndGet();
+                    else if ("PENDING".equals(status)) pendingCount.incrementAndGet();
                 }
             }
-            if (queries.decrementAndGet() == 0) updateFriendStatsUI(counts[0].get(), counts[1].get());
+            if (queries.decrementAndGet() == 0) updateFriendStatsUI(friendsCount.get(), pendingCount.get());
         });
     }
 
@@ -173,6 +179,7 @@ public class ProfileFragment extends Fragment {
         super.onResume();
         loadUserProfile();
         loadFriendStats();
+        loadStatistics();
     }
 
     private void loadStatistics() {
@@ -211,4 +218,3 @@ public class ProfileFragment extends Fragment {
         }
     }
 }
-

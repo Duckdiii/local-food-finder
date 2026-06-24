@@ -46,6 +46,7 @@
     <color name="signin_bg_start">#FFF9F4</color>
     <color name="signin_bg_end">#FFE4CC</color>
     <color name="signin_input_bg">#FAFAFA</color>
+    <color name="black">#000000</color>
 
     <!-- Legacy compatibility colors -->
     <color name="camera_frame">#F0C35A</color>
