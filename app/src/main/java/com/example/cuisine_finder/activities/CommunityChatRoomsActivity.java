@@ -133,7 +133,23 @@ public class CommunityChatRoomsActivity extends AppCompatActivity {
         intent.putExtra(ChatRoomActivity.EXTRA_ROOM_NAME,
                 hasCustomName ? room.getName() : ChatRoomAdapter.displayName(room.getId()));
         intent.putExtra(ChatRoomActivity.EXTRA_ROOM_TYPE, room.getType());
+
+        // Forward restaurant share extras if present
+        if (getIntent().hasExtra(ChatRoomActivity.EXTRA_RESTAURANT_ID)) {
+            intent.putExtra(ChatRoomActivity.EXTRA_RESTAURANT_ID, getIntent().getStringExtra(ChatRoomActivity.EXTRA_RESTAURANT_ID));
+            intent.putExtra(ChatRoomActivity.EXTRA_RESTAURANT_NAME, getIntent().getStringExtra(ChatRoomActivity.EXTRA_RESTAURANT_NAME));
+            intent.putExtra(ChatRoomActivity.EXTRA_RESTAURANT_RATING, getIntent().getDoubleExtra(ChatRoomActivity.EXTRA_RESTAURANT_RATING, 0.0));
+            if (getIntent().hasExtra(ChatRoomActivity.EXTRA_RESTAURANT_IMAGE)) {
+                intent.putExtra(ChatRoomActivity.EXTRA_RESTAURANT_IMAGE, getIntent().getStringExtra(ChatRoomActivity.EXTRA_RESTAURANT_IMAGE));
+            }
+        }
+
         startActivity(intent);
+
+        // If we are in sharing mode, finish the room picker activity after launching ChatRoomActivity
+        if (getIntent().hasExtra(ChatRoomActivity.EXTRA_RESTAURANT_ID)) {
+            finish();
+        }
     }
 
     private void showCreateRoomDialog() {

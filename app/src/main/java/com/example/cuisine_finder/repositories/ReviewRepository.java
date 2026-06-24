@@ -56,6 +56,10 @@ public class ReviewRepository {
                     "averageRating", newAverageRating
                 );
 
+                // Update user review count
+                DocumentReference userRef = db.collection("users").document(review.getUserId());
+                transaction.update(userRef, "reviewCount", com.google.firebase.firestore.FieldValue.increment(1));
+
                 // Add the review document
                 DocumentReference newReviewRef = reviewsRef.document();
                 review.setId(newReviewRef.getId());

@@ -63,10 +63,14 @@ public class AchievementsActivity extends AppCompatActivity {
             User user = doc.toObject(User.class);
             if (user != null) {
                 // Fetch real contribution count from Firestore
-                placeRepository.getPlacesByUser(currentUserId).get().addOnSuccessListener(placesSnapshot -> {
-                    int contributionCount = placesSnapshot.size();
-                    updateBadgeStatus(user, contributionCount);
-                });
+                placeRepository.getPlacesByUser(currentUserId).get()
+                    .addOnSuccessListener(placesSnapshot -> {
+                        int contributionCount = placesSnapshot != null ? placesSnapshot.size() : 0;
+                        updateBadgeStatus(user, contributionCount);
+                    })
+                    .addOnFailureListener(e -> {
+                        updateBadgeStatus(user, 0);
+                    });
             }
         });
     }

@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -99,6 +100,14 @@
             android:exported="false"
             android:theme="@style/Theme.Cuisine_finder" />
         <activity
+            android:name=".activities.MyOrdersActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+        <activity
+            android:name=".activities.AdminApproveActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Cuisine_finder" />
+        <activity
             android:name=".activities.AdminOrdersActivity"
             android:exported="false"
             android:theme="@style/Theme.Cuisine_finder" />
@@ -106,6 +115,14 @@
             android:name=".activities.ShipperOrdersActivity"
             android:exported="false"
             android:theme="@style/Theme.Cuisine_finder" />
+
+        <service
+            android:name=".services.MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"

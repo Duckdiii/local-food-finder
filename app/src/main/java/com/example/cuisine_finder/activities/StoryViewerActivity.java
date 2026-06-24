@@ -39,6 +39,24 @@ public class StoryViewerActivity extends AppCompatActivity {
 
         findViewById(R.id.btnClose).setOnClickListener(v -> finish());
 
+        ivStoryFull.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, android.view.MotionEvent event) {
+                if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
+                    float x = event.getX();
+                    float width = v.getWidth();
+                    if (x < width / 3.0f) {
+                        showStory(currentIndex - 1);
+                    } else {
+                        showStory(currentIndex + 1);
+                    }
+                    v.performClick();
+                    return true;
+                }
+                return true;
+            }
+        });
+
         loadActiveStories();
     }
 

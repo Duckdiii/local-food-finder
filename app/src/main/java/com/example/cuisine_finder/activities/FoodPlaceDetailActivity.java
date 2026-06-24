@@ -351,7 +351,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
             tvStatus.setTextColor(getResources().getColor(R.color.green_open));
             tvStatus.setBackgroundResource(R.drawable.bg_chip_green);
         } else {
-            tvStatus.setText("Đã đóng cửa");
+            tvStatus.setText("Tạm đóng");
             tvStatus.setTextColor(getResources().getColor(R.color.red_close));
             tvStatus.setBackgroundResource(R.drawable.bg_chip_red);
         }
@@ -379,13 +379,18 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         btnWriteReview.setOnClickListener(v -> showReviewDialog());
         
         btnShare.setOnClickListener(v -> Toast.makeText(this, "Chia sẻ địa điểm này", Toast.LENGTH_SHORT).show());
-        btnCall.setOnClickListener(v -> Toast.makeText(this, "Đang gọi hotline quán...", Toast.LENGTH_SHORT).show());
+        btnCall.setOnClickListener(v -> {
+            Toast.makeText(this, "Đang gọi hotline quán...", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(Intent.ACTION_DIAL);
+            intent.setData(android.net.Uri.parse("tel:0901234567"));
+            startActivity(intent);
+        });
         btnOrder.setOnClickListener(v -> {
             if (cartItems.isEmpty()) {
                 switchTab(true);
                 Toast.makeText(this, "Vui lòng chọn món ăn từ thực đơn", Toast.LENGTH_SHORT).show();
             } else {
-                showCartDialog();
+                openCheckout();
             }
         });
         layoutViewCart.setOnClickListener(v -> showCartDialog());
@@ -575,7 +580,15 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
             String roomId = preferences.getString("last_room_id", null);
             String roomName = preferences.getString("last_room_name", null);
             if (roomId == null || roomName == null) {
-                Toast.makeText(this, "Hãy vào tab Cộng đồng để chọn phòng chat trước", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Chọn phòng chat để chia sẻ quán ăn này", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(this, CommunityChatRoomsActivity.class);
+                intent.putExtra(ChatRoomActivity.EXTRA_RESTAURANT_ID, currentPlace.getId());
+                intent.putExtra(ChatRoomActivity.EXTRA_RESTAURANT_NAME, currentPlace.getName());
+                intent.putExtra(ChatRoomActivity.EXTRA_RESTAURANT_RATING, currentPlace.getAverageRating());
+                if (currentPlace.getImageUrls() != null && !currentPlace.getImageUrls().isEmpty()) {
+                    intent.putExtra(ChatRoomActivity.EXTRA_RESTAURANT_IMAGE, currentPlace.getImageUrls().get(0));
+                }
+                startActivity(intent);
                 return;
             }
             Intent intent = new Intent(this, ChatRoomActivity.class);

@@ -15,7 +15,7 @@ import com.example.cuisine_finder.activities.EditProfileActivity;
 import com.example.cuisine_finder.activities.FriendsActivity;
 import com.example.cuisine_finder.activities.NotificationsActivity;
 import com.example.cuisine_finder.activities.AdminOrdersActivity;
-import com.example.cuisine_finder.activities.CustomerOrdersActivity;
+import com.example.cuisine_finder.activities.MyOrdersActivity;
 import com.example.cuisine_finder.activities.ShipperOrdersActivity;
 import com.example.cuisine_finder.models.Friendship;
 import com.example.cuisine_finder.models.User;
@@ -39,6 +39,7 @@ public class ProfileFragment extends Fragment {
     private TextView tvFriendCount, tvPendingCount, tvOrderManagementTitle;
     private MaterialCardView cardFriends, cardPendingBadge;
     private View btnNotifications, btnSettings, btnSignOut, btnViewAchievements,btnCustomerOrders, separatorCustomerOrders, btnOrderManagement, separatorAdmin;
+    private View btnContributePlace, btnStatistics, btnAdminApprove, separatorAdminApprove;
 
     private InteractionRepository interactionRepository;
     private ReviewRepository reviewRepository;
@@ -94,6 +95,10 @@ public class ProfileFragment extends Fragment {
         btnOrderManagement = view.findViewById(R.id.btnOrderManagement);
         separatorAdmin = view.findViewById(R.id.separatorAdmin);
         btnViewAchievements = view.findViewById(R.id.btnViewAchievements);
+        btnContributePlace = view.findViewById(R.id.btnContributePlace);
+        btnStatistics = view.findViewById(R.id.btnStatistics);
+        btnAdminApprove = view.findViewById(R.id.btnAdminApprove);
+        separatorAdminApprove = view.findViewById(R.id.separatorAdminApprove);
 
         cardFriends.setOnClickListener(v -> {
             startActivity(new Intent(getActivity(), FriendsActivity.class));
@@ -110,7 +115,7 @@ public class ProfileFragment extends Fragment {
         });
 
         btnCustomerOrders.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), CustomerOrdersActivity.class);
+            Intent intent = new Intent(getActivity(), MyOrdersActivity.class);
             startActivity(intent);
         });
 
@@ -128,6 +133,23 @@ public class ProfileFragment extends Fragment {
             Intent intent = new Intent(getActivity(), AchievementsActivity.class);
             startActivity(intent);
         });
+
+        btnContributePlace.setOnClickListener(v -> {
+            if (getActivity() != null) {
+                getActivity().getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.fragmentContainer, new AddRestaurantFragment())
+                        .addToBackStack(null)
+                        .commit();
+            }
+        });
+
+        btnStatistics.setOnClickListener(v -> {
+            startActivity(new Intent(getActivity(), com.example.cuisine_finder.activities.StatisticsActivity.class));
+        });
+
+        btnAdminApprove.setOnClickListener(v -> {
+            startActivity(new Intent(getActivity(), com.example.cuisine_finder.activities.AdminApproveActivity.class));
+        });
     }
 
     private void loadUserProfile() {
@@ -142,6 +164,13 @@ public class ProfileFragment extends Fragment {
                     tvEmail.setText(user.getEmail());
                     if (!name.isEmpty()) {
                         tvAvatarInit.setText(String.valueOf(name.charAt(0)).toUpperCase());
+                    }
+                    boolean isAdmin = "SYSTEM_ADMIN".equals(user.getRole());
+                    if (btnAdminApprove != null) {
+                        btnAdminApprove.setVisibility(isAdmin ? View.VISIBLE : View.GONE);
+                    }
+                    if (separatorAdminApprove != null) {
+                        separatorAdminApprove.setVisibility(isAdmin ? View.VISIBLE : View.GONE);
                     }
                     updateOrderManagementVisibility(user);
                 }

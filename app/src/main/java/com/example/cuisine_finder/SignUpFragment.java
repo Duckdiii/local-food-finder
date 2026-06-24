@@ -18,6 +18,7 @@ import com.google.firebase.auth.FirebaseUser;
 public class SignUpFragment extends Fragment {
 
     private EditText etFirstName, etLastName, etEmail, etPassword;
+    private android.widget.RadioGroup rgRole;
     private TextView btnSignUp, tvSignIn;
     private AuthService authService;
     private UserRepository userRepository;
@@ -34,6 +35,7 @@ public class SignUpFragment extends Fragment {
         etLastName = view.findViewById(R.id.etLastName);
         etEmail = view.findViewById(R.id.etEmail);
         etPassword = view.findViewById(R.id.etPassword);
+        rgRole = view.findViewById(R.id.rgRole);
         btnSignUp = view.findViewById(R.id.btnSignUp);
         tvSignIn = view.findViewById(R.id.tvSignIn);
 
@@ -61,11 +63,34 @@ public class SignUpFragment extends Fragment {
             return;
         }
 
+        // Validate email format
+        if (!email.matches("[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+")) {
+            Toast.makeText(getContext(), "Email không đúng định dạng", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Validate password strength (length >= 6 and contains both letters and digits)
+        if (password.length() < 6 || !password.matches(".*[a-zA-Z].*") || !password.matches(".*\\d.*")) {
+            Toast.makeText(getContext(), "Mật khẩu phải từ 6 ký tự và bao gồm cả chữ và số", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String selectedRole = com.example.cuisine_finder.models.UserRole.CUSTOMER;
+        if (rgRole != null) {
+            int checkedId = rgRole.getCheckedRadioButtonId();
+            if (checkedId == R.id.rbMerchant) {
+                selectedRole = com.example.cuisine_finder.models.UserRole.MERCHANT;
+            } else if (checkedId == R.id.rbShipper) {
+                selectedRole = com.example.cuisine_finder.models.UserRole.SHIPPER;
+            }
+        }
+
+        final String finalRole = selectedRole;
         authService.signUp(email, password).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 FirebaseUser firebaseUser = authService.getCurrentUser();
                 if (firebaseUser != null) {
-                    saveUserToFirestore(firebaseUser.getUid(), firstName + " " + lastName, email, password);
+                    saveUserToFirestore(firebaseUser.getUid(), firstName + " " + lastName, email, password, finalRole);
                 }
             } else {
                 Toast.makeText(getContext(), "Đăng ký thất bại: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
@@ -73,13 +98,13 @@ public class SignUpFragment extends Fragment {
         });
     }
 
-    private void saveUserToFirestore(String userId, String fullName, String email, String password) {
+    private void saveUserToFirestore(String userId, String fullName, String email, String password, String role) {
         User user = new User();
         user.setId(userId);
         user.setFullName(fullName);
         user.setEmail(email);
         user.setPassword(password);
-        user.setRole("USER");
+        user.setRole(role);
         user.setActive(true);
         user.setCreatedAt(System.currentTimeMillis());
 

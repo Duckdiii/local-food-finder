@@ -68,6 +68,8 @@ public class CommunityFragment extends Fragment {
     private CommunityPostAdapter postAdapter;
     private ListenerRegistration postsRegistration;
     private final List<CommunityPost> allPosts = new ArrayList<>();
+    private final java.util.Map<String, FoodPlace> placesCache = new java.util.HashMap<>();
+    private PlaceRepository placeRepository;
 
     private TextView tvCurrentDistrictRoom;
     private TextView tvCommunityEmpty;
@@ -118,11 +120,30 @@ public class CommunityFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_community, container, false);
         communityRepository = new CommunityRepository();
+        placeRepository = new PlaceRepository();
         currentUserId = FirebaseAuth.getInstance().getUid();
 
         initViews(view);
         setupRecyclerView(view);
         setupActions(view);
+
+        placeRepository.getCachedApprovedPlaces(new PlaceRepository.OnPlacesLoadedCallback() {
+            @Override
+            public void onLoaded(List<FoodPlace> places) {
+                if (!isAdded()) return;
+                placesCache.clear();
+                if (places != null) {
+                    for (FoodPlace p : places) {
+                        placesCache.put(p.getId(), p);
+                    }
+                }
+                applyFilter();
+            }
+
+            @Override
+            public void onError() {}
+        });
+
         startListeningPosts();
         return view;
     }
@@ -254,9 +275,20 @@ public class CommunityFragment extends Fragment {
         List<CommunityPost> visiblePosts = new ArrayList<>();
         String normalizedQuery = searchQuery == null ? "" : searchQuery.trim().toLowerCase(Locale.getDefault());
 
+        android.location.Location userLoc = getUserLocation();
         for (CommunityPost post : allPosts) {
             if (!matchesSearch(post, normalizedQuery)) continue;
             if (currentFilter == FeedFilter.NIGHT && !isNightPost(post)) continue;
+
+            // Calculate dynamic GPS distance if available
+            FoodPlace place = placesCache.get(post.getPlaceId());
+            if (place != null && userLoc != null) {
+                double dist = calculateDistanceKm(userLoc, place);
+                post.setDistanceKm(dist);
+            } else if (post.getDistanceKm() <= 0) {
+                post.setDistanceKm(Double.MAX_VALUE);
+            }
+
             visiblePosts.add(post);
         }
 
@@ -928,5 +960,36 @@ public class CommunityFragment extends Fragment {
         @Override
         public void onTextChanged(CharSequence s, int start, int before, int count) {
         }
+    }
+
+    private android.location.Location getUserLocation() {
+        if (getContext() == null) return null;
+        if (androidx.core.app.ActivityCompat.checkSelfPermission(requireContext(), 
+                android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            return null;
+        }
+        android.location.LocationManager lm = (android.location.LocationManager)
+                requireContext().getSystemService(android.content.Context.LOCATION_SERVICE);
+        if (lm == null) return null;
+        try {
+            android.location.Location loc = lm.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER);
+            if (loc == null) {
+                loc = lm.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER);
+            }
+            return loc;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private double calculateDistanceKm(android.location.Location userLoc, FoodPlace place) {
+        if (userLoc == null || place == null) return Double.MAX_VALUE;
+        float[] results = new float[1];
+        android.location.Location.distanceBetween(
+                userLoc.getLatitude(), userLoc.getLongitude(),
+                place.getLatitude(), place.getLongitude(),
+                results
+        );
+        return results[0] / 1000.0;
     }
 }

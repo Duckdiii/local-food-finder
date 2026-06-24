@@ -7,6 +7,7 @@ public class User {
     private String fullName;
     private String email;
     private String avatarUrl;
+    private String phone;
 
     private String password;
     private int exploredCount;
@@ -63,4 +64,7 @@ public class User {
 
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 }

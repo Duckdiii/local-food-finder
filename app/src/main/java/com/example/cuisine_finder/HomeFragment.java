@@ -539,7 +539,7 @@ public class HomeFragment extends Fragment {
             holder.tvFeaturedFoodRating.setText(String.format(Locale.getDefault(), "★ %.1f", foodItem.getAverageRating()));
             
             if (foodItem.getImageUrls() != null && !foodItem.getImageUrls().isEmpty()) {
-                Glide.with(getContext())
+                Glide.with(holder.ivFeaturedFood.getContext())
                         .load(foodItem.getImageUrls().get(0))
                         .placeholder(R.drawable.bg_image_placeholder)
                         .centerCrop()
@@ -591,7 +591,7 @@ public class HomeFragment extends Fragment {
             holder.tvStats.setText(String.format(Locale.getDefault(), "❤ %d  ·  ✍ %d reviews", place.getFavoriteCount(), place.getReviewCount()));
             
             if (place.getImageUrls() != null && !place.getImageUrls().isEmpty()) {
-                Glide.with(getContext()).load(place.getImageUrls().get(0)).placeholder(R.drawable.bg_image_placeholder).into(holder.ivImage);
+                Glide.with(holder.ivImage.getContext()).load(place.getImageUrls().get(0)).placeholder(R.drawable.bg_image_placeholder).into(holder.ivImage);
             } else {
                 holder.ivImage.setImageResource(R.drawable.bg_image_placeholder);
             }
@@ -635,7 +635,7 @@ public class HomeFragment extends Fragment {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             Story story = items.get(position);
             holder.tvName.setText(story.getUserName() != null ? story.getUserName() : "User");
-            Glide.with(getContext()).load(story.getImageUrl()).placeholder(R.drawable.bg_image_placeholder).into(holder.ivThumb);
+            Glide.with(holder.ivThumb.getContext()).load(story.getImageUrl()).placeholder(R.drawable.bg_image_placeholder).into(holder.ivThumb);
             holder.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(getActivity(), StoryViewerActivity.class);
                 startActivity(intent);
