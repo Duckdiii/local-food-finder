@@ -18,11 +18,20 @@ import java.util.Locale;
 
 public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder> {
 
+    public interface OnAddToCartClickListener {
+        void onAddToCart(FoodItem item);
+    }
+
     private List<FoodItem> items = new ArrayList<>();
+    private OnAddToCartClickListener addToCartClickListener;
 
     public void setItems(List<FoodItem> items) {
         this.items = items != null ? items : new ArrayList<>();
         notifyDataSetChanged();
+    }
+
+    public void setOnAddToCartClickListener(OnAddToCartClickListener listener) {
+        this.addToCartClickListener = listener;
     }
 
     @NonNull
@@ -77,6 +86,12 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
         } else {
             holder.ivImage.setImageResource(R.drawable.bg_image_placeholder);
         }
+
+        holder.btnAdd.setOnClickListener(v -> {
+            if (addToCartClickListener != null && item.getPrice() > 0) {
+                addToCartClickListener.onAddToCart(item);
+            }
+        });
     }
 
     @Override
@@ -94,6 +109,7 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
     static class MenuViewHolder extends RecyclerView.ViewHolder {
         ImageView ivImage;
         TextView tvName, tvDescription, tvRating, tvCategory, tvPrice;
+        View btnAdd;
 
         MenuViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -103,6 +119,7 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
             tvRating = itemView.findViewById(R.id.tvMenuItemRating);
             tvCategory = itemView.findViewById(R.id.tvMenuItemCategory);
             tvPrice = itemView.findViewById(R.id.tvMenuItemPrice);
+            btnAdd = itemView.findViewById(R.id.btnAddMenuItem);
         }
     }
 }

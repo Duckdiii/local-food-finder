@@ -23,8 +23,10 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.cuisine_finder.R;
+import com.example.cuisine_finder.adapters.CartAdapter;
 import com.example.cuisine_finder.adapters.MenuAdapter;
 import com.example.cuisine_finder.adapters.ReviewAdapter;
+import com.example.cuisine_finder.models.CartItem;
 import com.example.cuisine_finder.models.ExploredPlace;
 import com.example.cuisine_finder.models.Favorite;
 import com.example.cuisine_finder.models.FoodItem;
@@ -37,8 +39,16 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class FoodPlaceDetailActivity extends AppCompatActivity {
     public static final String EXTRA_PLACE_ID = "placeId";
@@ -51,9 +61,12 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
     private RecyclerView rvMenu;
     private LinearLayout layoutMenuTab, layoutReviewsTab, layoutMenuEmpty;
     private com.google.android.material.card.MaterialCardView tabMenu, tabReviews;
+    private com.google.android.material.card.MaterialCardView layoutViewCart;
     private TextView tvTabMenuLabel, tvTabReviewsLabel;
+    private TextView tvCartCount, tvCartTotal;
     private ReviewAdapter reviewAdapter;
     private MenuAdapter menuAdapter;
+    private final Map<String, CartItem> cartItems = new LinkedHashMap<>();
 
     private FoodPlace currentPlace;
     private ReviewRepository reviewRepository;
@@ -201,6 +214,9 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         tabReviews = findViewById(R.id.tabReviews);
         tvTabMenuLabel = findViewById(R.id.tvTabMenuLabel);
         tvTabReviewsLabel = findViewById(R.id.tvTabReviewsLabel);
+        layoutViewCart = findViewById(R.id.layoutViewCart);
+        tvCartCount = findViewById(R.id.tvCartCount);
+        tvCartTotal = findViewById(R.id.tvCartTotal);
     }
 
     private void setupRecyclerViews() {
@@ -209,6 +225,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         rvReviews.setAdapter(reviewAdapter);
 
         menuAdapter = new MenuAdapter();
+        menuAdapter.setOnAddToCartClickListener(this::addToCart);
         rvMenu.setLayoutManager(new LinearLayoutManager(this));
         rvMenu.setAdapter(menuAdapter);
     }
@@ -338,6 +355,181 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         btnShare.setOnClickListener(v -> Toast.makeText(this, "Chia sẻ địa điểm này", Toast.LENGTH_SHORT).show());
         btnCall.setOnClickListener(v -> Toast.makeText(this, "Đang gọi hotline quán...", Toast.LENGTH_SHORT).show());
         btnOrder.setOnClickListener(v -> Toast.makeText(this, "Chuyển đến màn hình đặt món", Toast.LENGTH_SHORT).show());
+        layoutViewCart.setOnClickListener(v -> showCartDialog());
+    }
+
+    private void addToCart(FoodItem foodItem) {
+        if (foodItem == null || foodItem.getId() == null) return;
+        if (foodItem.getPrice() <= 0) {
+            Toast.makeText(this, "Mon nay chua co gia de dat hang", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        CartItem existing = cartItems.get(foodItem.getId());
+        if (existing == null) {
+            cartItems.put(foodItem.getId(), new CartItem(foodItem));
+        } else {
+            existing.setQuantity(existing.getQuantity() + 1);
+        }
+        updateCartBar();
+        Toast.makeText(this, "Da them vao gio hang", Toast.LENGTH_SHORT).show();
+    }
+
+    private void increaseCartItem(CartItem item) {
+        if (item == null || item.getFoodItemId() == null) return;
+        CartItem existing = cartItems.get(item.getFoodItemId());
+        if (existing != null) {
+            existing.setQuantity(existing.getQuantity() + 1);
+        }
+    }
+
+    private void decreaseCartItem(CartItem item) {
+        if (item == null || item.getFoodItemId() == null) return;
+        CartItem existing = cartItems.get(item.getFoodItemId());
+        if (existing == null) return;
+        int nextQuantity = existing.getQuantity() - 1;
+        if (nextQuantity <= 0) {
+            cartItems.remove(item.getFoodItemId());
+        } else {
+            existing.setQuantity(nextQuantity);
+        }
+    }
+
+    private void removeCartItem(CartItem item) {
+        if (item == null || item.getFoodItemId() == null) return;
+        cartItems.remove(item.getFoodItemId());
+    }
+
+    private void updateCartBar() {
+        int count = getCartItemCount();
+        if (count <= 0) {
+            layoutViewCart.setVisibility(View.GONE);
+            return;
+        }
+        layoutViewCart.setVisibility(View.VISIBLE);
+        tvCartCount.setText(String.valueOf(count));
+        tvCartTotal.setText(formatPrice(getCartTotal()));
+    }
+
+    private int getCartItemCount() {
+        int count = 0;
+        for (CartItem item : cartItems.values()) {
+            count += item.getQuantity();
+        }
+        return count;
+    }
+
+    private double getCartTotal() {
+        double total = 0;
+        for (CartItem item : cartItems.values()) {
+            total += item.getSubtotal();
+        }
+        return total;
+    }
+
+    private List<CartItem> getCartItems() {
+        return new ArrayList<>(cartItems.values());
+    }
+
+    private void showCartDialog() {
+        if (cartItems.isEmpty()) return;
+
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.dialog_cart, null);
+        TextView tvCartRestaurantName = view.findViewById(R.id.tvCartRestaurantName);
+        TextView tvCartTotalPrice = view.findViewById(R.id.tvCartTotalPrice);
+        TextView btnPlaceOrder = view.findViewById(R.id.btnPlaceOrder);
+        RecyclerView rvCartItems = view.findViewById(R.id.rvCartItems);
+
+        if (currentPlace != null && currentPlace.getName() != null) {
+            tvCartRestaurantName.setText(currentPlace.getName());
+        }
+
+        final CartAdapter[] adapterRef = new CartAdapter[1];
+        CartAdapter adapter = new CartAdapter(new CartAdapter.CartItemActionListener() {
+            @Override
+            public void onIncrease(CartItem item) {
+                increaseCartItem(item);
+                refreshCartDialog(adapterRef[0], tvCartTotalPrice, dialog);
+            }
+
+            @Override
+            public void onDecrease(CartItem item) {
+                decreaseCartItem(item);
+                refreshCartDialog(adapterRef[0], tvCartTotalPrice, dialog);
+            }
+
+            @Override
+            public void onRemove(CartItem item) {
+                removeCartItem(item);
+                refreshCartDialog(adapterRef[0], tvCartTotalPrice, dialog);
+            }
+        });
+        adapterRef[0] = adapter;
+
+        rvCartItems.setLayoutManager(new LinearLayoutManager(this));
+        rvCartItems.setAdapter(adapter);
+        refreshCartDialog(adapter, tvCartTotalPrice, dialog);
+
+        btnPlaceOrder.setOnClickListener(v -> {
+            if (cartItems.isEmpty()) {
+                dialog.dismiss();
+                return;
+            }
+            openCheckout();
+            dialog.dismiss();
+        });
+
+        dialog.setContentView(view);
+        dialog.show();
+    }
+
+    private void refreshCartDialog(CartAdapter adapter, TextView tvCartTotalPrice, BottomSheetDialog dialog) {
+        updateCartBar();
+        if (cartItems.isEmpty()) {
+            dialog.dismiss();
+            return;
+        }
+        adapter.setItems(getCartItems());
+        tvCartTotalPrice.setText(formatPrice(getCartTotal()));
+    }
+
+    private String formatPrice(double price) {
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("vi", "VN"));
+        symbols.setGroupingSeparator('.');
+        DecimalFormat df = new DecimalFormat("#,###", symbols);
+        return df.format((long) price) + "d";
+    }
+
+    private void openCheckout() {
+        if (currentPlace == null) {
+            Toast.makeText(this, "Thong tin quan chua tai xong", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(this, CheckoutActivity.class);
+        intent.putExtra(CheckoutActivity.EXTRA_RESTAURANT_ID, currentPlace.getId());
+        intent.putExtra(CheckoutActivity.EXTRA_RESTAURANT_NAME, currentPlace.getName());
+        intent.putExtra(CheckoutActivity.EXTRA_CART_ITEMS_JSON, serializeCartItems());
+        startActivity(intent);
+    }
+
+    private String serializeCartItems() {
+        JSONArray array = new JSONArray();
+        for (CartItem item : cartItems.values()) {
+            JSONObject object = new JSONObject();
+            try {
+                object.put("foodItemId", item.getFoodItemId());
+                object.put("name", item.getName());
+                object.put("price", item.getPrice());
+                object.put("quantity", item.getQuantity());
+                object.put("imageUrl", item.getImageUrl());
+                array.put(object);
+            } catch (JSONException ignored) {
+                // Skip malformed item and keep checkout usable for the rest of the cart.
+            }
+        }
+        return array.toString();
     }
 
     private void setupChatShare() {
