@@ -537,7 +537,16 @@ public class HomeFragment extends Fragment {
             holder.tvFeaturedFoodName.setText(foodName);
             holder.tvFeaturedTag.setText(featuredTag);
             holder.tvFeaturedFoodRating.setText(String.format(Locale.getDefault(), "★ %.1f", foodItem.getAverageRating()));
-            holder.ivFeaturedFood.setImageResource(R.drawable.bg_image_placeholder);
+            
+            if (foodItem.getImageUrls() != null && !foodItem.getImageUrls().isEmpty()) {
+                Glide.with(getContext())
+                        .load(foodItem.getImageUrls().get(0))
+                        .placeholder(R.drawable.bg_image_placeholder)
+                        .centerCrop()
+                        .into(holder.ivFeaturedFood);
+            } else {
+                holder.ivFeaturedFood.setImageResource(R.drawable.bg_image_placeholder);
+            }
         }
 
         @Override

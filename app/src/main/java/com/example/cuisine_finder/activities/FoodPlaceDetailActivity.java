@@ -340,10 +340,36 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         tvOpenTime.setText("Mở: " + place.getOpenTime());
         tvCloseTime.setText("Đóng: " + place.getCloseTime());
         
-        if ("APPROVED".equals(place.getStatus())) {
-            tvStatus.setText("Đang mở");
-        } else {
+        // Kiểm tra trạng thái thực tế dựa trên giờ mở/đóng cửa
+        boolean isOpen = isCurrentlyOpen(place);
+        if (!"APPROVED".equals(place.getStatus())) {
             tvStatus.setText("Tạm đóng");
+            tvStatus.setTextColor(getResources().getColor(R.color.red_close));
+            tvStatus.setBackgroundResource(R.drawable.bg_chip_red);
+        } else if (isOpen) {
+            tvStatus.setText("Đang mở");
+            tvStatus.setTextColor(getResources().getColor(R.color.green_open));
+            tvStatus.setBackgroundResource(R.drawable.bg_chip_green);
+        } else {
+            tvStatus.setText("Đã đóng cửa");
+            tvStatus.setTextColor(getResources().getColor(R.color.red_close));
+            tvStatus.setBackgroundResource(R.drawable.bg_chip_red);
+        }
+    }
+
+    private boolean isCurrentlyOpen(FoodPlace place) {
+        if (place.getOpenTime() == null || place.getCloseTime() == null) return true;
+        try {
+            java.util.Calendar now = java.util.Calendar.getInstance();
+            int current = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE);
+            String[] o = place.getOpenTime().split(":");
+            String[] c = place.getCloseTime().split(":");
+            int open = Integer.parseInt(o[0]) * 60 + Integer.parseInt(o[1]);
+            int close = Integer.parseInt(c[0]) * 60 + Integer.parseInt(c[1]);
+            if (open <= close) return current >= open && current <= close;
+            return current >= open || current <= close; // crosses midnight
+        } catch (Exception e) {
+            return true;
         }
     }
 
@@ -354,7 +380,14 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         
         btnShare.setOnClickListener(v -> Toast.makeText(this, "Chia sẻ địa điểm này", Toast.LENGTH_SHORT).show());
         btnCall.setOnClickListener(v -> Toast.makeText(this, "Đang gọi hotline quán...", Toast.LENGTH_SHORT).show());
-        btnOrder.setOnClickListener(v -> Toast.makeText(this, "Chuyển đến màn hình đặt món", Toast.LENGTH_SHORT).show());
+        btnOrder.setOnClickListener(v -> {
+            if (cartItems.isEmpty()) {
+                switchTab(true);
+                Toast.makeText(this, "Vui lòng chọn món ăn từ thực đơn", Toast.LENGTH_SHORT).show();
+            } else {
+                showCartDialog();
+            }
+        });
         layoutViewCart.setOnClickListener(v -> showCartDialog());
     }
 

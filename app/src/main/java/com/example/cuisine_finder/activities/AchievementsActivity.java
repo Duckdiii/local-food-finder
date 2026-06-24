@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.cuisine_finder.R;
 import com.example.cuisine_finder.models.Badge;
 import com.example.cuisine_finder.models.User;
+import com.example.cuisine_finder.repositories.PlaceRepository;
 import com.example.cuisine_finder.repositories.UserRepository;
 import com.google.firebase.auth.FirebaseAuth;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ public class AchievementsActivity extends AppCompatActivity {
     private BadgeAdapter adapter;
     private List<Badge> badges = new ArrayList<>();
     private UserRepository userRepository;
+    private PlaceRepository placeRepository;
     private String currentUserId;
 
     @Override
@@ -31,6 +33,7 @@ public class AchievementsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_achievements);
 
         userRepository = new UserRepository();
+        placeRepository = new PlaceRepository();
         currentUserId = FirebaseAuth.getInstance().getUid();
 
         rvAchievements = findViewById(R.id.rvAchievements);
@@ -59,20 +62,24 @@ public class AchievementsActivity extends AppCompatActivity {
         userRepository.getUser(currentUserId).addOnSuccessListener(doc -> {
             User user = doc.toObject(User.class);
             if (user != null) {
-                updateBadgeStatus(user);
+                // Fetch real contribution count from Firestore
+                placeRepository.getPlacesByUser(currentUserId).get().addOnSuccessListener(placesSnapshot -> {
+                    int contributionCount = placesSnapshot.size();
+                    updateBadgeStatus(user, contributionCount);
+                });
             }
         });
     }
 
-    private void updateBadgeStatus(User user) {
+    private void updateBadgeStatus(User user, int contributionCount) {
         for (Badge badge : badges) {
             if ("EXPLORED".equals(badge.getRequirementType())) {
                 badge.setEarned(user.getExploredCount() >= badge.getRequirementValue());
             } else if ("REVIEW".equals(badge.getRequirementType())) {
                 badge.setEarned(user.getReviewCount() >= badge.getRequirementValue());
             } else if ("SHARE".equals(badge.getRequirementType())) {
-                // Assuming favoriteCount or some other stat for share if not explicit
-                badge.setEarned(user.getFavoriteCount() >= badge.getRequirementValue());
+                // Use actual contribution count instead of favoriteCount
+                badge.setEarned(contributionCount >= badge.getRequirementValue());
             }
         }
         adapter.notifyDataSetChanged();
