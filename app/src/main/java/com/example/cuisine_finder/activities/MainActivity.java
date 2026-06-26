@@ -39,12 +39,17 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        // Handle Insets for root view to avoid overlap with Notch/Status Bar
+        // Handle Insets: root gets top padding for status bar only
+        // BottomNavigationView gets bottom padding for navigation bar separately
         View rootView = findViewById(R.id.mainRoot);
+        BottomNavigationView bottomNavInsets = findViewById(R.id.bottomNavigation);
         ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, insets) -> {
             int statusBarHeight = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
             int navBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
-            v.setPadding(0, statusBarHeight, 0, navBarHeight);
+            // Only apply top padding to root (for status bar / notch)
+            v.setPadding(0, statusBarHeight, 0, 0);
+            // Apply bottom padding to BottomNavigationView so it sits above system nav bar
+            bottomNavInsets.setPadding(0, 0, 0, navBarHeight);
             return insets;
         });
 
@@ -55,6 +60,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         authService = new AuthService();
+
+        // Seed Hóc Môn data if needed
+        com.example.cuisine_finder.utils.HocMonDataSeeder.seedDataIfNeeded(this);
 
         BottomNavigationView bottomNav = findViewById(R.id.bottomNavigation);
         

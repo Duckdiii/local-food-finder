@@ -382,11 +382,12 @@ public class CommunityFragment extends Fragment {
     }
 
     private void setChipState(View chipView, TextView textView, boolean active) {
-        chipView.setBackgroundResource(active ? R.drawable.bg_community_tab_active : R.drawable.bg_community_tab_inactive);
-        textView.setTextColor(ContextCompat.getColor(
-                requireContext(),
-                active ? R.color.orange_main : R.color.text_gray
-        ));
+        chipView.setBackgroundResource(active ? R.drawable.bg_community_tab_selected : R.drawable.bg_community_tab_unselected);
+        if (active) {
+            textView.setTextColor(ContextCompat.getColor(requireContext(), R.color.orange_main));
+        } else {
+            textView.setTextColor(0xCCFFFFFF); // semi-transparent white on gradient header
+        }
         textView.setTypeface(null, active ? Typeface.BOLD : Typeface.NORMAL);
     }
 

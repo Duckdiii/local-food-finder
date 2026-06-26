@@ -14,17 +14,18 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Header -->
+            <!-- ===== HEADER ===== -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_home_header"
+                android:background="@drawable/bg_saved_header"
                 android:orientation="vertical"
-                android:paddingStart="24dp"
-                android:paddingTop="32dp"
-                android:paddingEnd="24dp"
-                android:paddingBottom="36dp">
+                android:paddingStart="22dp"
+                android:paddingTop="24dp"
+                android:paddingEnd="22dp"
+                android:paddingBottom="32dp">
 
+                <!-- Title row -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -42,8 +43,9 @@
                             android:layout_height="wrap_content"
                             android:text="Yêu thích"
                             android:textColor="@color/white"
-                            android:textSize="26sp"
-                            android:textStyle="bold" />
+                            android:textSize="28sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.01" />
 
                         <TextView
                             android:id="@+id/tvSavedCount"
@@ -55,12 +57,12 @@
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Heart icon decoration -->
+                    <!-- Heart decoration -->
                     <com.google.android.material.card.MaterialCardView
-                        android:layout_width="46dp"
-                        android:layout_height="46dp"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
                         app:cardBackgroundColor="#30FFFFFF"
-                        app:cardCornerRadius="14dp"
+                        app:cardCornerRadius="25dp"
                         app:cardElevation="0dp"
                         app:strokeColor="#40FFFFFF"
                         app:strokeWidth="1dp">
@@ -68,99 +70,119 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:gravity="center"
-                            android:text="&#x2665;"
-                            android:textColor="@color/white"
-                            android:textSize="20sp" />
+                            android:text="❤️"
+                            android:textSize="22sp" />
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
-            </LinearLayout>
 
-            <!-- Offset card to overlap header -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="-20dp"
-                android:orientation="vertical">
-
-                <!-- Explored places card -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cardExplored"
+                <!-- Stats row -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="20dp"
-                    android:layout_marginTop="0dp"
-                    android:layout_marginEnd="20dp"
-                    android:layout_marginBottom="12dp"
-                    app:cardBackgroundColor="@color/white"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="4dp"
-                    app:strokeWidth="0dp">
+                    android:layout_marginTop="20dp"
+                    android:orientation="horizontal">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <!-- Saved count stat -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="16dp">
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            app:cardBackgroundColor="@color/orange_light"
-                            app:cardCornerRadius="14dp"
-                            app:cardElevation="0dp"
-                            app:strokeWidth="0dp">
-                            <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:gravity="center"
-                                android:text="🗺"
-                                android:textSize="20sp" />
-                        </com.google.android.material.card.MaterialCardView>
-
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
+                        app:cardBackgroundColor="#28FFFFFF"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="#30FFFFFF"
+                        app:strokeWidth="1dp">
                         <LinearLayout
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:padding="14dp">
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Quán đã khám phá"
-                                android:textColor="@color/text_dark"
-                                android:textSize="14sp"
+                                android:text="🔖"
+                                android:textSize="22sp" />
+                            <TextView
+                                android:id="@+id/tvStatSavedNum"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="0"
+                                android:textColor="@color/white"
+                                android:textSize="20sp"
                                 android:textStyle="bold" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Đã lưu"
+                                android:textColor="#CCFFFFFF"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
 
+                    <!-- Explored stat -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardExplored"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardBackgroundColor="#28FFFFFF"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="#30FFFFFF"
+                        app:strokeWidth="1dp">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:padding="14dp">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🗺"
+                                android:textSize="22sp" />
                             <TextView
                                 android:id="@+id/tvExploredCountSaved"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Xem danh sách các quán bạn đã ghé thăm"
-                                android:textColor="@color/text_gray"
-                                android:textSize="12sp" />
+                                android:layout_marginTop="4dp"
+                                android:text="0"
+                                android:textColor="@color/white"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Đã ghé"
+                                android:textColor="#CCFFFFFF"
+                                android:textSize="11sp" />
                         </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </LinearLayout>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="›"
-                            android:textColor="@color/orange_main"
-                            android:textSize="22sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+            <!-- ===== CONTENT SECTION (overlaps header) ===== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="-16dp"
+                android:background="@drawable/bg_content_rounded_top"
+                android:orientation="vertical">
 
-                <!-- Sort chips row -->
+                <!-- Filter chips -->
                 <HorizontalScrollView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="4dp"
+                    android:layout_marginTop="20dp"
                     android:clipToPadding="false"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
                     android:scrollbars="none">
 
                     <LinearLayout
@@ -173,6 +195,8 @@
                             android:id="@+id/chipTabAll"
                             android:layout_width="wrap_content"
                             android:layout_height="40dp"
+                            android:clickable="true"
+                            android:focusable="true"
                             app:cardBackgroundColor="@color/orange_main"
                             app:cardCornerRadius="20dp"
                             app:cardElevation="4dp"
@@ -182,8 +206,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="match_parent"
                                 android:gravity="center"
-                                android:paddingStart="18dp"
-                                android:paddingEnd="18dp"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="20dp"
                                 android:text="Tất cả"
                                 android:textColor="@color/white"
                                 android:textSize="13sp"
@@ -195,6 +219,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="40dp"
                             android:layout_marginStart="8dp"
+                            android:clickable="true"
+                            android:focusable="true"
                             app:cardBackgroundColor="@color/white"
                             app:cardCornerRadius="20dp"
                             app:cardElevation="2dp"
@@ -205,9 +231,9 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="match_parent"
                                 android:gravity="center"
-                                android:paddingStart="18dp"
-                                android:paddingEnd="18dp"
-                                android:text="Mới lưu"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="20dp"
+                                android:text="🕐 Mới lưu"
                                 android:textColor="@color/text_dark"
                                 android:textSize="13sp" />
                         </com.google.android.material.card.MaterialCardView>
@@ -217,6 +243,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="40dp"
                             android:layout_marginStart="8dp"
+                            android:clickable="true"
+                            android:focusable="true"
                             app:cardBackgroundColor="@color/white"
                             app:cardCornerRadius="20dp"
                             app:cardElevation="2dp"
@@ -227,9 +255,9 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="match_parent"
                                 android:gravity="center"
-                                android:paddingStart="18dp"
-                                android:paddingEnd="18dp"
-                                android:text="A-Z"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="20dp"
+                                android:text="🔤 A-Z"
                                 android:textColor="@color/text_dark"
                                 android:textSize="13sp" />
                         </com.google.android.material.card.MaterialCardView>
@@ -239,6 +267,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="40dp"
                             android:layout_marginStart="8dp"
+                            android:layout_marginEnd="4dp"
+                            android:clickable="true"
+                            android:focusable="true"
                             app:cardBackgroundColor="@color/white"
                             app:cardCornerRadius="20dp"
                             app:cardElevation="2dp"
@@ -249,26 +280,38 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="match_parent"
                                 android:gravity="center"
-                                android:paddingStart="18dp"
-                                android:paddingEnd="18dp"
-                                android:text="Đêm khuya"
+                                android:paddingStart="20dp"
+                                android:paddingEnd="20dp"
+                                android:text="🌙 Đêm khuya"
                                 android:textColor="@color/text_dark"
                                 android:textSize="13sp" />
                         </com.google.android.material.card.MaterialCardView>
                     </LinearLayout>
                 </HorizontalScrollView>
 
-                <!-- Favorites list -->
+                <!-- Section label -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="4dp"
+                    android:text="Quán yêu thích của bạn"
+                    android:textColor="@color/text_dark"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <!-- Favorites RecyclerView -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvSavedPlaces"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
                     android:clipToPadding="false"
                     android:nestedScrollingEnabled="false"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:paddingBottom="20dp" />
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="24dp" />
 
                 <!-- Empty State -->
                 <LinearLayout
@@ -277,42 +320,41 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:paddingTop="56dp"
-                    android:paddingBottom="56dp"
+                    android:paddingTop="60dp"
+                    android:paddingBottom="60dp"
                     android:visibility="gone">
 
                     <com.google.android.material.card.MaterialCardView
-                        android:layout_width="96dp"
-                        android:layout_height="96dp"
+                        android:layout_width="100dp"
+                        android:layout_height="100dp"
                         app:cardBackgroundColor="@color/orange_light"
-                        app:cardCornerRadius="28dp"
+                        app:cardCornerRadius="32dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp">
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:gravity="center"
-                            android:text="&#x2665;"
-                            android:textColor="@color/orange_main"
-                            android:textSize="40sp" />
+                            android:text="❤️"
+                            android:textSize="44sp" />
                     </com.google.android.material.card.MaterialCardView>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp"
+                        android:layout_marginTop="22dp"
                         android:text="Chưa có quán yêu thích"
                         android:textColor="@color/text_dark"
-                        android:textSize="18sp"
+                        android:textSize="20sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="280dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="12dp"
                         android:gravity="center"
-                        android:lineSpacingExtra="4dp"
-                        android:text="Lưu các quán ăn yêu thích để xem lại dễ dàng bất cứ lúc nào"
+                        android:lineSpacingMultiplier="1.4"
+                        android:text="Nhấn ❤ trên trang chi tiết để lưu quán ăn yêu thích của bạn"
                         android:textColor="@color/text_gray"
                         android:textSize="14sp" />
                 </LinearLayout>

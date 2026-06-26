@@ -337,8 +337,17 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         tvDescription.setText(place.getDescription());
         tvRating.setText(String.format("%.1f", place.getAverageRating()));
         tvReviewCount.setText("(" + place.getReviewCount() + " reviews)");
-        tvOpenTime.setText("Mở: " + place.getOpenTime());
-        tvCloseTime.setText("Đóng: " + place.getCloseTime());
+        
+        String openTime = place.getOpenTime();
+        String closeTime = place.getCloseTime();
+        if (openTime == null || openTime.trim().isEmpty()) {
+            openTime = "07:00";
+        }
+        if (closeTime == null || closeTime.trim().isEmpty()) {
+            closeTime = "22:00";
+        }
+        tvOpenTime.setText("Mở cửa: " + openTime);
+        tvCloseTime.setText("Đóng cửa: " + closeTime);
         
         // Kiểm tra trạng thái thực tế dựa trên giờ mở/đóng cửa
         boolean isOpen = isCurrentlyOpen(place);
@@ -358,12 +367,20 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
     }
 
     private boolean isCurrentlyOpen(FoodPlace place) {
-        if (place.getOpenTime() == null || place.getCloseTime() == null) return true;
+        if (place == null) return true;
+        String openTime = place.getOpenTime();
+        String closeTime = place.getCloseTime();
+        if (openTime == null || openTime.trim().isEmpty()) {
+            openTime = "07:00";
+        }
+        if (closeTime == null || closeTime.trim().isEmpty()) {
+            closeTime = "22:00";
+        }
         try {
             java.util.Calendar now = java.util.Calendar.getInstance();
             int current = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE);
-            String[] o = place.getOpenTime().split(":");
-            String[] c = place.getCloseTime().split(":");
+            String[] o = openTime.split(":");
+            String[] c = closeTime.split(":");
             int open = Integer.parseInt(o[0]) * 60 + Integer.parseInt(o[1]);
             int close = Integer.parseInt(c[0]) * 60 + Integer.parseInt(c[1]);
             if (open <= close) return current >= open && current <= close;
@@ -394,6 +411,35 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
             }
         });
         layoutViewCart.setOnClickListener(v -> showCartDialog());
+
+        View btnViewMap = findViewById(R.id.btnViewMap);
+        if (btnViewMap != null) {
+            btnViewMap.setOnClickListener(v -> {
+                if (currentPlace != null) {
+                    double lat = currentPlace.getLatitude();
+                    double lon = currentPlace.getLongitude();
+                    String name = currentPlace.getName();
+                    if (lat != 0.0 || lon != 0.0) {
+                        try {
+                            String uri = String.format(Locale.US, "geo:%f,%f?q=%f,%f(%s)", lat, lon, lat, lon, android.net.Uri.encode(name));
+                            Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uri));
+                            intent.setPackage("com.google.android.apps.maps");
+                            if (intent.resolveActivity(getPackageManager()) != null) {
+                                startActivity(intent);
+                            } else {
+                                String mapUrl = String.format(Locale.US, "https://www.google.com/maps/search/?api=1&query=%f,%f", lat, lon);
+                                Intent browserIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(mapUrl));
+                                startActivity(browserIntent);
+                            }
+                        } catch (Exception e) {
+                            Toast.makeText(this, "Không thể mở bản đồ: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Toast.makeText(this, "Địa điểm chưa có tọa độ bản đồ", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
     }
 
     private void addToCart(FoodItem foodItem) {

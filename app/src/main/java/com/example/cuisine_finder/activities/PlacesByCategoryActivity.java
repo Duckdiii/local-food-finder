@@ -25,6 +25,9 @@ public class PlacesByCategoryActivity extends AppCompatActivity {
     public static final String EXTRA_CATEGORY_NAME = "category_name";
     public static final String EXTRA_CATEGORY_DESCRIPTION = "category_description";
     public static final String EXTRA_CATEGORY_ICON_URL = "category_icon_url";
+    public static final String EXTRA_MODE = "mode";
+    public static final String EXTRA_MIN_RATING = "min_rating";
+    public static final String MODE_FEATURED = "featured";
 
     private TextView tvCategoryName, tvCategoryDescription, tvCategoryEmoji, tvPlaceCount;
     private ImageView ivCategoryHero;
@@ -74,6 +77,20 @@ public class PlacesByCategoryActivity extends AppCompatActivity {
     }
 
     private void loadIntentData() {
+        String mode = getIntent().getStringExtra(EXTRA_MODE);
+
+        if (MODE_FEATURED.equals(mode)) {
+            // Mode: Gợi ý siêu hot — hiển thị quán top rating
+            double minRating = getIntent().getDoubleExtra(EXTRA_MIN_RATING, 4.5);
+            tvCategoryName.setText("Gợi ý siêu hot 🔥");
+            tvCategoryDescription.setText("Các quán được đánh giá cao nhất");
+            tvCategoryDescription.setVisibility(View.VISIBLE);
+            tvCategoryEmoji.setText("🔥");
+            ivCategoryHero.setVisibility(View.GONE);
+            loadTopRatedPlaces(minRating);
+            return;
+        }
+
         String categoryName = getIntent().getStringExtra(EXTRA_CATEGORY_NAME);
         String description = getIntent().getStringExtra(EXTRA_CATEGORY_DESCRIPTION);
         String iconUrl = getIntent().getStringExtra(EXTRA_CATEGORY_ICON_URL);
@@ -109,6 +126,41 @@ public class PlacesByCategoryActivity extends AppCompatActivity {
         tvPlaceCount.setText("Đang tải...");
 
         placeRepository.getPlacesByFoodType(categoryName)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        List<FoodPlace> places = new ArrayList<>();
+                        for (DocumentSnapshot doc : task.getResult().getDocuments()) {
+                            FoodPlace place = doc.toObject(FoodPlace.class);
+                            if (place != null) {
+                                place.setId(doc.getId());
+                                places.add(place);
+                            }
+                        }
+
+                        adapter.setPlaces(places);
+
+                        int count = places.size();
+                        tvPlaceCount.setText(count + " quán");
+
+                        if (count == 0) {
+                            layoutEmpty.setVisibility(View.VISIBLE);
+                            rvPlaces.setVisibility(View.GONE);
+                        } else {
+                            layoutEmpty.setVisibility(View.GONE);
+                            rvPlaces.setVisibility(View.VISIBLE);
+                        }
+                    } else {
+                        tvPlaceCount.setText("0 quán");
+                        layoutEmpty.setVisibility(View.VISIBLE);
+                        rvPlaces.setVisibility(View.GONE);
+                    }
+                });
+    }
+
+    private void loadTopRatedPlaces(double minRating) {
+        tvPlaceCount.setText("Đang tải...");
+
+        placeRepository.getTopRatedPlaces(minRating)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null) {
                         List<FoodPlace> places = new ArrayList<>();

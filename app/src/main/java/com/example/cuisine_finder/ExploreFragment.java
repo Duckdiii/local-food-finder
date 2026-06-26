@@ -805,15 +805,18 @@ public class ExploreFragment extends Fragment {
 
             if (place.getReviewCount() > 0) {
                 holder.tvRating.setText(String.format(Locale.getDefault(),
-                        "★ %.1f", place.getAverageRating()));
+                        "★ %.1f  (%d)", place.getAverageRating(), place.getReviewCount()));
             } else {
-                holder.tvRating.setText("Chưa có đánh giá");
+                holder.tvRating.setText("★ Chưa có đánh giá");
             }
 
             boolean open = isOpen(place);
             holder.tvStatus.setText(open ? "● Mở cửa" : "● Đóng cửa");
             holder.tvStatus.setTextColor(holder.itemView.getContext().getColor(
                     open ? R.color.green_open : R.color.red_close));
+
+            // Set emoji based on food type
+            holder.tvEmoji.setText(getEmojiForFoodType(place.getFoodType()));
 
             holder.itemView.setOnClickListener(v -> listener.click(place));
         }
@@ -833,13 +836,36 @@ public class ExploreFragment extends Fragment {
             } catch (Exception e) { return true; }
         }
 
+        private String getEmojiForFoodType(String type) {
+            if (type == null) return "🍲";
+            String t = type.toLowerCase(Locale.getDefault());
+            if (t.contains("phở") || t.contains("bún") || t.contains("hủ tiếu")) return "🍜";
+            if (t.contains("cơm")) return "🍚";
+            if (t.contains("lẩu")) return "🪵";
+            if (t.contains("cà phê") || t.contains("coffee") || t.contains("cafe")) return "☕";
+            if (t.contains("trà sữa") || t.contains("milk tea")) return "🦹";
+            if (t.contains("bánh")) return "🥐";
+            if (t.contains("nướng") || t.contains("bbq")) return "🍖";
+            if (t.contains("pizza")) return "🍕";
+            if (t.contains("burger")) return "🍔";
+            if (t.contains("sushi") || t.contains("nhật")) return "🍣";
+            if (t.contains("kem")) return "🍦";
+            if (t.contains("chè")) return "🍡";
+            if (t.contains("gà") || t.contains("chicken")) return "🍗";
+            if (t.contains("hải sản") || t.contains("ốc")) return "🦪";
+            if (t.contains("chày") || t.contains("vegetarian")) return "🥗";
+            if (t.contains("xôi")) return "🍙";
+            return "🍲";
+        }
+
         static class VH extends RecyclerView.ViewHolder {
-            TextView tvName, tvRating, tvStatus;
+            TextView tvName, tvRating, tvStatus, tvEmoji;
             VH(View v) {
                 super(v);
                 tvName   = v.findViewById(R.id.tvCardName);
                 tvRating = v.findViewById(R.id.tvCardRating);
                 tvStatus = v.findViewById(R.id.tvCardStatus);
+                tvEmoji  = v.findViewById(R.id.tvCardEmoji);
             }
         }
     }

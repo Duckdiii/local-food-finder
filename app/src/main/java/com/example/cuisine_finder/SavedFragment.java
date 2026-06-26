@@ -33,6 +33,7 @@ public class SavedFragment extends Fragment {
     private RecyclerView rvSavedPlaces;
     private LinearLayout layoutEmptyState;
     private TextView tvSavedCount;
+    private TextView tvStatSavedNum;
     private MaterialCardView chipTabAll, chipTabRecent, chipTabAlpha, chipTabNight;
     private TextView tvChipTabAll, tvChipTabRecent, tvChipTabAlpha, tvChipTabNight;
     private FavoriteAdapter adapter;
@@ -63,6 +64,7 @@ public class SavedFragment extends Fragment {
         rvSavedPlaces = view.findViewById(R.id.rvSavedPlaces);
         layoutEmptyState = view.findViewById(R.id.layoutEmptyState);
         tvSavedCount = view.findViewById(R.id.tvSavedCount);
+        tvStatSavedNum = view.findViewById(R.id.tvStatSavedNum);
         chipTabAll = view.findViewById(R.id.chipTabAll);
         chipTabRecent = view.findViewById(R.id.chipTabRecent);
         chipTabAlpha = view.findViewById(R.id.chipTabAlpha);
@@ -186,6 +188,7 @@ public class SavedFragment extends Fragment {
 
     private void updateCountDisplay() {
         int count = allFavorites.size();
+        if (tvStatSavedNum != null) tvStatSavedNum.setText(String.valueOf(count));
         if (count == 0) {
             showEmptyState();
             tvSavedCount.setText("Các quán đã lưu của bạn");
@@ -197,6 +200,7 @@ public class SavedFragment extends Fragment {
 
     private void updateEmptyAndCount(int visibleCount) {
         int totalCount = allFavorites.size();
+        if (tvStatSavedNum != null) tvStatSavedNum.setText(String.valueOf(totalCount));
         if (totalCount == 0) {
             showEmptyState();
             tvSavedCount.setText("Các quán đã lưu của bạn");

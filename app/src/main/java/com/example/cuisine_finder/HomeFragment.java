@@ -10,6 +10,8 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -56,6 +58,15 @@ public class HomeFragment extends Fragment {
     private StoryAdapter storyAdapter;
     
     private TextView tvWelcome;
+    private ImageView ivUserAvatar;
+    private String currentUserAvatarUrl = null;
+
+    private final ActivityResultLauncher<String> storyImagePickerLauncher =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                if (uri != null) {
+                    uploadStory(uri);
+                }
+            });
 
     private List<User> friendsList = new ArrayList<>();
     private List<FoodCategory> categoriesList = new ArrayList<>();
@@ -97,6 +108,20 @@ public class HomeFragment extends Fragment {
         btnRandomSuggestion = view.findViewById(R.id.btnRandomSuggestion);
         btnRandomSuggestion.setOnClickListener(v -> startRandomSuggestion());
 
+        ivUserAvatar = view.findViewById(R.id.ivUserAvatar);
+        View cardUserAvatar = view.findViewById(R.id.cardUserAvatar);
+        if (cardUserAvatar != null) {
+            cardUserAvatar.setOnClickListener(v -> {
+                if (getActivity() != null) {
+                    com.google.android.material.bottomnavigation.BottomNavigationView bottomNav =
+                            getActivity().findViewById(R.id.bottomNavigation);
+                    if (bottomNav != null) {
+                        bottomNav.setSelectedItemId(R.id.nav_profile);
+                    }
+                }
+            });
+        }
+
         setupRecyclerViews();
 
         EditText etSearch = view.findViewById(R.id.etHomeSearch);
@@ -137,6 +162,17 @@ public class HomeFragment extends Fragment {
         if (tvHomeViewAllFriends != null) {
             tvHomeViewAllFriends.setOnClickListener(v -> {
                 Intent intent = new Intent(requireContext(), com.example.cuisine_finder.activities.FriendsActivity.class);
+                startActivity(intent);
+            });
+        }
+        // Setup View All Featured click listener (Gợi ý siêu hot)
+        TextView tvViewAllFeatured = view.findViewById(R.id.tvViewAllFeatured);
+        if (tvViewAllFeatured != null) {
+            tvViewAllFeatured.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), com.example.cuisine_finder.activities.PlacesByCategoryActivity.class);
+                intent.putExtra(com.example.cuisine_finder.activities.PlacesByCategoryActivity.EXTRA_MODE,
+                        com.example.cuisine_finder.activities.PlacesByCategoryActivity.MODE_FEATURED);
+                intent.putExtra(com.example.cuisine_finder.activities.PlacesByCategoryActivity.EXTRA_MIN_RATING, FEATURED_MIN_RATING);
                 startActivity(intent);
             });
         }
@@ -249,26 +285,91 @@ public class HomeFragment extends Fragment {
         userRepository.getUser(currentUserId).addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
                 User user = task.getResult().toObject(User.class);
-                if (user != null && user.getFullName() != null) {
-                    tvWelcome.setText("Xin chào, " + user.getFullName());
+                if (user != null) {
+                    if (user.getFullName() != null) {
+                        tvWelcome.setText("Xin chào, " + user.getFullName());
+                    }
+                    currentUserAvatarUrl = user.getAvatarUrl();
+                    if (ivUserAvatar != null) {
+                        if (currentUserAvatarUrl != null && !currentUserAvatarUrl.isEmpty()) {
+                            Glide.with(HomeFragment.this)
+                                    .load(currentUserAvatarUrl)
+                                    .placeholder(R.drawable.bg_image_placeholder)
+                                    .error(R.drawable.bg_avatar_orange)
+                                    .into(ivUserAvatar);
+                        } else {
+                            ivUserAvatar.setImageResource(R.drawable.bg_avatar_orange);
+                        }
+                    }
+                    if (storyAdapter != null) {
+                        storyAdapter.notifyItemChanged(0);
+                    }
                 }
             }
         });
     }
 
+    private void uploadStory(android.net.Uri uri) {
+        if (!authService.isLoggedIn() || getContext() == null) return;
+        Toast.makeText(getContext(), "Đang đăng tin...", Toast.LENGTH_SHORT).show();
+
+        String uid = authService.getCurrentUser().getUid();
+        String path = "stories/" + System.currentTimeMillis() + "_" + uid + ".jpg";
+        com.google.firebase.storage.StorageReference ref = com.google.firebase.storage.FirebaseStorage.getInstance().getReference(path);
+
+        ref.putFile(uri)
+                .continueWithTask(task -> {
+                    if (!task.isSuccessful() && task.getException() != null) {
+                        throw task.getException();
+                    }
+                    return ref.getDownloadUrl();
+                })
+                .addOnSuccessListener(url -> {
+                    userRepository.getUser(uid).addOnSuccessListener(doc -> {
+                        User user = doc.toObject(User.class);
+                        String name = (user != null && user.getFullName() != null) ? user.getFullName() : "User";
+                        String avatar = (user != null && user.getAvatarUrl() != null) ? user.getAvatarUrl() : "";
+
+                        Story story = new Story();
+                        story.setUserId(uid);
+                        story.setUserName(name);
+                        story.setUserAvatarUrl(avatar);
+                        story.setImageUrl(url.toString());
+                        story.setCaption("Mới chia sẻ");
+
+                        storyRepository.uploadStory(story).addOnSuccessListener(aVoid -> {
+                            Toast.makeText(getContext(), "Đăng tin thành công!", Toast.LENGTH_SHORT).show();
+                            loadStories();
+                        });
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(getContext(), "Lỗi tải ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
     private void loadTrendingPlaces() {
-        placeRepository.getApprovedPlaces().orderBy("favoriteCount", Query.Direction.DESCENDING).limit(10).get()
+        placeRepository.getApprovedPlaces().get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null) {
                         trendingList.clear();
+                        List<FoodPlace> tempPlaces = new ArrayList<>();
                         for (DocumentSnapshot doc : task.getResult().getDocuments()) {
                             FoodPlace place = doc.toObject(FoodPlace.class);
                             if (place != null) {
                                 place.setId(doc.getId());
-                                trendingList.add(place);
+                                tempPlaces.add(place);
                             }
                         }
+                        // Sort in memory by favoriteCount descending to avoid Firestore index requirements
+                        Collections.sort(tempPlaces, (p1, p2) -> Integer.compare(p2.getFavoriteCount(), p1.getFavoriteCount()));
+
+                        for (int i = 0; i < Math.min(10, tempPlaces.size()); i++) {
+                            trendingList.add(tempPlaces.get(i));
+                        }
                         trendingAdapter.notifyDataSetChanged();
+                    } else {
+                        android.util.Log.e("HomeFragment", "Error loading trending places: ", task.getException());
                     }
                 });
     }
@@ -343,6 +444,9 @@ public class HomeFragment extends Fragment {
             if (last != null) {
                 loadNearbyRestaurant(last.getLatitude(), last.getLongitude());
             } else {
+                // Show fallback immediately so the UI is not empty while waiting for GPS lock
+                loadFallbackNearbyRestaurant();
+
                 android.location.LocationListener listener = new android.location.LocationListener() {
                     @Override
                     public void onLocationChanged(@NonNull android.location.Location loc) {
@@ -359,8 +463,6 @@ public class HomeFragment extends Fragment {
                 } else if (lm.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER)) {
                     lm.requestSingleUpdate(android.location.LocationManager.NETWORK_PROVIDER, listener,
                             requireActivity().getMainLooper());
-                } else {
-                    loadFallbackNearbyRestaurant();
                 }
             }
         } catch (SecurityException e) {
@@ -680,15 +782,26 @@ public class HomeFragment extends Fragment {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             FoodCategory cat = items.get(position);
             holder.tvName.setText(cat.getName());
-            String emoji = "🍲";
-            String name = cat.getName().toLowerCase();
-            if (name.contains("coffee") || name.contains("cà phê")) emoji = "☕";
-            else if (name.contains("bún")) emoji = "🍜";
-            else if (name.contains("cơm")) emoji = "🍚";
-            else if (name.contains("lẩu")) emoji = "🍲";
-            else if (name.contains("ốc")) emoji = "🐚";
 
-            holder.tvEmoji.setText(emoji);
+            if (cat.getIconUrl() != null && !cat.getIconUrl().trim().isEmpty()) {
+                holder.ivIcon.setVisibility(View.VISIBLE);
+                holder.tvEmoji.setVisibility(View.GONE);
+                Glide.with(holder.itemView.getContext())
+                        .load(cat.getIconUrl())
+                        .centerCrop()
+                        .into(holder.ivIcon);
+            } else {
+                holder.ivIcon.setVisibility(View.GONE);
+                holder.tvEmoji.setVisibility(View.VISIBLE);
+                String emoji = "🍲";
+                String name = cat.getName().toLowerCase();
+                if (name.contains("coffee") || name.contains("cà phê")) emoji = "☕";
+                else if (name.contains("bún")) emoji = "🍜";
+                else if (name.contains("cơm")) emoji = "🍚";
+                else if (name.contains("lẩu")) emoji = "🍲";
+                else if (name.contains("ốc")) emoji = "🐚";
+                holder.tvEmoji.setText(emoji);
+            }
 
             holder.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(requireContext(), PlacesByCategoryActivity.class);
@@ -706,10 +819,12 @@ public class HomeFragment extends Fragment {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvEmoji, tvName;
+            ImageView ivIcon;
             ViewHolder(View v) {
                 super(v);
                 tvEmoji = v.findViewById(R.id.tvCategoryEmoji);
                 tvName = v.findViewById(R.id.tvCategoryName);
+                ivIcon = v.findViewById(R.id.ivCategoryIcon);
             }
         }
     }
@@ -838,6 +953,11 @@ public class HomeFragment extends Fragment {
         private List<Story> items;
         StoryAdapter(List<Story> items) { this.items = items; }
 
+        @Override
+        public int getItemViewType(int position) {
+            return position == 0 ? 0 : 1;
+        }
+
         @NonNull @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_story_circle, parent, false));
@@ -845,17 +965,39 @@ public class HomeFragment extends Fragment {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            Story story = items.get(position);
-            holder.tvName.setText(story.getUserName() != null ? story.getUserName() : "User");
-            Glide.with(holder.ivThumb.getContext()).load(story.getImageUrl()).placeholder(R.drawable.bg_image_placeholder).into(holder.ivThumb);
-            holder.itemView.setOnClickListener(v -> {
-                Intent intent = new Intent(getActivity(), StoryViewerActivity.class);
-                intent.putExtra("START_INDEX", position);
-                startActivity(intent);
-            });
+            if (getItemViewType(position) == 0) {
+                holder.tvName.setText("Thêm tin");
+                if (currentUserAvatarUrl != null && !currentUserAvatarUrl.isEmpty()) {
+                    Glide.with(holder.ivThumb.getContext())
+                            .load(currentUserAvatarUrl)
+                            .placeholder(R.drawable.bg_image_placeholder)
+                            .error(R.drawable.bg_avatar_orange)
+                            .into(holder.ivThumb);
+                } else {
+                    Glide.with(holder.ivThumb.getContext())
+                            .load("https://img.icons8.com/color/96/plus--v1.png")
+                            .placeholder(R.drawable.bg_image_placeholder)
+                            .into(holder.ivThumb);
+                }
+                holder.itemView.setOnClickListener(v -> {
+                    storyImagePickerLauncher.launch("image/*");
+                });
+            } else {
+                Story story = items.get(position - 1);
+                holder.tvName.setText(story.getUserName() != null ? story.getUserName() : "User");
+                Glide.with(holder.ivThumb.getContext())
+                        .load(story.getImageUrl())
+                        .placeholder(R.drawable.bg_image_placeholder)
+                        .into(holder.ivThumb);
+                holder.itemView.setOnClickListener(v -> {
+                    Intent intent = new Intent(getActivity(), StoryViewerActivity.class);
+                    intent.putExtra("START_INDEX", position - 1);
+                    startActivity(intent);
+                });
+            }
         }
 
-        @Override public int getItemCount() { return items.size(); }
+        @Override public int getItemCount() { return items.size() + 1; }
 
         class ViewHolder extends RecyclerView.ViewHolder {
             ImageView ivThumb;

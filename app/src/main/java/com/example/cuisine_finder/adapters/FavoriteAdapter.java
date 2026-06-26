@@ -75,20 +75,26 @@ public class FavoriteAdapter extends RecyclerView.Adapter<FavoriteAdapter.Favori
 
     static class FavoriteViewHolder extends RecyclerView.ViewHolder {
         ImageView ivImage;
-        TextView tvName, tvFoodType, tvAddress, tvSavedTime, btnRemove;
+        TextView tvName, tvFoodType, tvAddress, tvSavedTime, btnRemove, tvRating;
 
         FavoriteViewHolder(@NonNull View itemView) {
             super(itemView);
-            ivImage = itemView.findViewById(R.id.ivFavoriteImage);
-            tvName = itemView.findViewById(R.id.tvFavoriteName);
+            ivImage    = itemView.findViewById(R.id.ivFavoriteImage);
+            tvName     = itemView.findViewById(R.id.tvFavoriteName);
             tvFoodType = itemView.findViewById(R.id.tvFavoriteFoodType);
-            tvAddress = itemView.findViewById(R.id.tvFavoriteAddress);
+            tvAddress  = itemView.findViewById(R.id.tvFavoriteAddress);
             tvSavedTime = itemView.findViewById(R.id.tvFavoriteSavedTime);
-            btnRemove = itemView.findViewById(R.id.btnRemoveFavorite);
+            btnRemove  = itemView.findViewById(R.id.btnRemoveFavorite);
+            tvRating   = itemView.findViewById(R.id.tvFavoriteRating);
         }
 
         void bind(Favorite favorite, OnItemClickListener clickListener, OnRemoveListener removeListener) {
             tvName.setText(favorite.getPlaceName() != null ? favorite.getPlaceName() : "Quán ăn");
+
+            // Rating (Favorite model doesn't store rating — show placeholder)
+            if (tvRating != null) {
+                tvRating.setText("★ --");
+            }
 
             // Food type badge
             if (favorite.getFoodType() != null && !favorite.getFoodType().isEmpty()) {

@@ -43,6 +43,15 @@ public class PlaceRepository {
                 .get();
     }
 
+    public Task<QuerySnapshot> getTopRatedPlaces(double minRating) {
+        return placesRef
+                .whereEqualTo("status", "APPROVED")
+                .whereGreaterThanOrEqualTo("averageRating", minRating)
+                .orderBy("averageRating", Query.Direction.DESCENDING)
+                .limit(50)
+                .get();
+    }
+
     /**
      * Trả về danh sách quán đã được duyệt từ cache (nếu còn hạn) hoặc fetch mới từ Firestore.
      * Giảm số lần gọi mạng: chỉ fetch lại sau mỗi 5 phút.

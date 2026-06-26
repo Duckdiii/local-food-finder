@@ -54,20 +54,23 @@
                 </LinearLayout>
 
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardUserAvatar"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     app:cardBackgroundColor="#30FFFFFF"
                     app:cardCornerRadius="24dp"
                     app:cardElevation="0dp"
                     app:strokeColor="#40FFFFFF"
-                    app:strokeWidth="1dp">
+                    app:strokeWidth="1dp"
+                    android:clickable="true"
+                    android:focusable="true">
 
-                    <TextView
+                    <ImageView
+                        android:id="@+id/ivUserAvatar"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:text="🦁"
-                        android:textSize="22sp" />
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/bg_image_placeholder" />
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
@@ -126,7 +129,7 @@
                 android:layout_marginTop="14dp"
                 android:background="@drawable/bg_random_button"
                 android:gravity="center"
-                android:text="🎲  Không biết ăn gì? Để tôi chọn!"
+                android:text="Không biết ăn gì? Để tôi chọn!"
                 android:textColor="@color/orange_main"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -236,12 +239,15 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tvViewAllFeatured"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Xem thêm"
                     android:textColor="@color/orange_main"
                     android:textSize="13sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
