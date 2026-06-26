@@ -836,11 +836,19 @@ public class CommunityFragment extends Fragment {
             post.setImageUrl(uri.toString());
             createPost(post, dialog);
         }).addOnFailureListener(error -> {
-            if (btnSubmitPost != null) {
-                btnSubmitPost.setText("Đăng bài");
-                setButtonEnabled(btnSubmitPost, true);
+            android.content.Context context = getContext();
+            if (context != null && selectedPostImageUri != null) {
+                String localUrl = com.example.cuisine_finder.utils.ImageStorageUtils.saveImageToInternalStorage(context, selectedPostImageUri, "community_posts");
+                post.setImageUrl(localUrl);
+                createPost(post, dialog);
+                Toast.makeText(context, "Đăng bài thành công (sử dụng ảnh local do lỗi kết nối)!", Toast.LENGTH_SHORT).show();
+            } else {
+                if (btnSubmitPost != null) {
+                    btnSubmitPost.setText("Đăng bài");
+                    setButtonEnabled(btnSubmitPost, true);
+                }
+                Toast.makeText(requireContext(), "Upload ảnh thất bại: " + error.getMessage(), Toast.LENGTH_SHORT).show();
             }
-            Toast.makeText(requireContext(), "Upload ảnh thất bại: " + error.getMessage(), Toast.LENGTH_SHORT).show();
         });
     }
 

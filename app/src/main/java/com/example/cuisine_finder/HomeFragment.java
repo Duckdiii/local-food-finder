@@ -325,27 +325,40 @@ public class HomeFragment extends Fragment {
                     return ref.getDownloadUrl();
                 })
                 .addOnSuccessListener(url -> {
-                    userRepository.getUser(uid).addOnSuccessListener(doc -> {
-                        User user = doc.toObject(User.class);
-                        String name = (user != null && user.getFullName() != null) ? user.getFullName() : "User";
-                        String avatar = (user != null && user.getAvatarUrl() != null) ? user.getAvatarUrl() : "";
-
-                        Story story = new Story();
-                        story.setUserId(uid);
-                        story.setUserName(name);
-                        story.setUserAvatarUrl(avatar);
-                        story.setImageUrl(url.toString());
-                        story.setCaption("Mới chia sẻ");
-
-                        storyRepository.uploadStory(story).addOnSuccessListener(aVoid -> {
-                            Toast.makeText(getContext(), "Đăng tin thành công!", Toast.LENGTH_SHORT).show();
-                            loadStories();
-                        });
-                    });
+                    saveStoryToFirestore(uid, url.toString());
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(getContext(), "Lỗi tải ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    android.content.Context context = getContext();
+                    if (context != null) {
+                        String localUrl = com.example.cuisine_finder.utils.ImageStorageUtils.saveImageToInternalStorage(context, uri, "stories");
+                        saveStoryToFirestore(uid, localUrl);
+                        Toast.makeText(context, "Đăng tin thành công (sử dụng ảnh local do lỗi kết nối)!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getContext(), "Lỗi tải ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
                 });
+    }
+
+    private void saveStoryToFirestore(String uid, String imageUrl) {
+        userRepository.getUser(uid).addOnSuccessListener(doc -> {
+            User user = doc.toObject(User.class);
+            String name = (user != null && user.getFullName() != null) ? user.getFullName() : "User";
+            String avatar = (user != null && user.getAvatarUrl() != null) ? user.getAvatarUrl() : "";
+
+            Story story = new Story();
+            story.setUserId(uid);
+            story.setUserName(name);
+            story.setUserAvatarUrl(avatar);
+            story.setImageUrl(imageUrl);
+            story.setCaption("Mới chia sẻ");
+
+            storyRepository.uploadStory(story).addOnSuccessListener(aVoid -> {
+                if (imageUrl != null && !imageUrl.startsWith("file://")) {
+                    Toast.makeText(getContext(), "Đăng tin thành công!", Toast.LENGTH_SHORT).show();
+                }
+                loadStories();
+            });
+        });
     }
 
     private void loadTrendingPlaces() {

@@ -318,9 +318,16 @@ public class AddRestaurantFragment extends Fragment {
             })
             .addOnSuccessListener(url -> saveSubmission(name, user, url.toString()))
             .addOnFailureListener(e -> {
-                isSubmitting = false;
-                btnSubmit.setEnabled(true);
-                toast("Lỗi tải ảnh: " + e.getMessage());
+                Context context = getContext();
+                if (context != null && selectedImageUri != null) {
+                    String localUrl = com.example.cuisine_finder.utils.ImageStorageUtils.saveImageToInternalStorage(context, selectedImageUri, "place_submissions");
+                    saveSubmission(name, user, localUrl);
+                    Toast.makeText(context, "Gửi yêu cầu thành công (sử dụng ảnh local do lỗi kết nối)!", Toast.LENGTH_SHORT).show();
+                } else {
+                    isSubmitting = false;
+                    btnSubmit.setEnabled(true);
+                    toast("Lỗi tải ảnh: " + e.getMessage());
+                }
             });
     }
 

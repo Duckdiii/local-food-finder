@@ -148,8 +148,14 @@ public class EditProfileActivity extends AppCompatActivity {
                     updateAuthAndFirestore(name, email, phone, password, url.toString());
                 })
                 .addOnFailureListener(e -> {
-                    setLoadingState(false);
-                    Toast.makeText(this, "Lỗi tải ảnh lên: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    if (selectedImageUri != null) {
+                        String localUrl = com.example.cuisine_finder.utils.ImageStorageUtils.saveImageToInternalStorage(this, selectedImageUri, "avatars");
+                        updateAuthAndFirestore(name, email, phone, password, localUrl);
+                        Toast.makeText(this, "Lưu thông tin thành công (sử dụng ảnh local do lỗi kết nối)!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        setLoadingState(false);
+                        Toast.makeText(this, "Lỗi tải ảnh lên: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
                 });
     }
 

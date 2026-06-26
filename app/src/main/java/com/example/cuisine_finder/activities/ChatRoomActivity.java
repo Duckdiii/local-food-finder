@@ -221,8 +221,12 @@ public class ChatRoomActivity extends AppCompatActivity implements ChatMessageAd
             message.setAttachmentUrl(downloadUri.toString());
             sendMessage(message);
         }).addOnFailureListener(error -> {
+            String localUrl = com.example.cuisine_finder.utils.ImageStorageUtils.saveImageToInternalStorage(this, uri, "chat_images");
             adapter.removeById(optimistic.getId());
-            Toast.makeText(this, "Tải ảnh thất bại, đã hoàn tác tin nhắn", Toast.LENGTH_SHORT).show();
+            ChatMessage message = newMessage(ChatMessage.TYPE_IMAGE, "Đã gửi một ảnh");
+            message.setAttachmentUrl(localUrl);
+            sendMessage(message);
+            Toast.makeText(this, "Đã gửi ảnh dạng local do lỗi kết nối Storage", Toast.LENGTH_SHORT).show();
         });
     }
 
