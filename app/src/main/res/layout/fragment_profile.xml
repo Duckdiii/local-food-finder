@@ -323,8 +323,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:visibility="gone">
+                    android:paddingEnd="16dp">
 
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="36dp"
@@ -337,7 +336,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:gravity="center"
-                            android:text="O"
+                            android:text="📦"
                             android:textSize="16sp" />
                     </com.google.android.material.card.MaterialCardView>
 
@@ -346,14 +345,14 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
                         android:layout_weight="1"
-                        android:text="Don hang cua toi"
+                        android:text="Đơn hàng của tôi"
                         android:textColor="@color/text_dark"
                         android:textSize="15sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="â€º"
+                        android:text="›"
                         android:textColor="@color/border_light"
                         android:textSize="22sp" />
                 </LinearLayout>
@@ -364,8 +363,7 @@
                     android:layout_height="1dp"
                     android:layout_marginStart="66dp"
                     android:layout_marginEnd="16dp"
-                    android:background="@color/border_light"
-                    android:visibility="gone" />
+                    android:background="@color/border_light" />
 
                 <!-- Notifications -->
                 <LinearLayout

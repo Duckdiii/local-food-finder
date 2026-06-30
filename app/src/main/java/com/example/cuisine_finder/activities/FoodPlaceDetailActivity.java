@@ -15,6 +15,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.ViewCompat;
@@ -35,6 +36,7 @@ import com.example.cuisine_finder.models.Review;
 import com.example.cuisine_finder.repositories.FoodItemRepository;
 import com.example.cuisine_finder.repositories.InteractionRepository;
 import com.example.cuisine_finder.repositories.ReviewRepository;
+import com.example.cuisine_finder.utils.CartManager;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
@@ -42,10 +44,8 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -66,7 +66,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
     private TextView tvCartCount, tvCartTotal;
     private ReviewAdapter reviewAdapter;
     private MenuAdapter menuAdapter;
-    private final Map<String, CartItem> cartItems = new LinkedHashMap<>();
+    private CartManager cartManager;
 
     private FoodPlace currentPlace;
     private ReviewRepository reviewRepository;
@@ -97,6 +97,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         reviewRepository = new ReviewRepository();
         foodItemRepository = new FoodItemRepository();
         interactionRepository = new InteractionRepository();
+        cartManager = CartManager.getInstance(this);
         currentUserId = FirebaseAuth.getInstance().getUid();
 
         initViews();
@@ -174,7 +175,8 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
 
     private void loadPlaceFromFirestore(String placeId) {
         FirebaseFirestore.getInstance().collection("food_places").document(placeId)
-                .addSnapshotListener((documentSnapshot, e) -> {
+                .get() 
+                .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot != null && documentSnapshot.exists()) {
                         currentPlace = documentSnapshot.toObject(FoodPlace.class);
                         if (currentPlace != null) {
@@ -354,50 +356,64 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         
         btnShare.setOnClickListener(v -> Toast.makeText(this, "Chia sẻ địa điểm này", Toast.LENGTH_SHORT).show());
         btnCall.setOnClickListener(v -> Toast.makeText(this, "Đang gọi hotline quán...", Toast.LENGTH_SHORT).show());
-        btnOrder.setOnClickListener(v -> Toast.makeText(this, "Chuyển đến màn hình đặt món", Toast.LENGTH_SHORT).show());
+        btnOrder.setOnClickListener(v -> {
+            // Switch to the Menu tab so the user can see food items
+            switchTab(true);
+            // Smooth scroll if needed
+            rvMenu.getParent().requestChildFocus(rvMenu, rvMenu);
+        });
         layoutViewCart.setOnClickListener(v -> showCartDialog());
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateCartBar();
+    }
+
     private void addToCart(FoodItem foodItem) {
-        if (foodItem == null || foodItem.getId() == null) return;
-        if (foodItem.getPrice() <= 0) {
-            Toast.makeText(this, "Mon nay chua co gia de dat hang", Toast.LENGTH_SHORT).show();
+        if (foodItem == null || foodItem.getId() == null || currentPlace == null) return;
+        
+        CartItem item = new CartItem(foodItem);
+        boolean added = cartManager.addItem(currentPlace.getId(), currentPlace.getName(), item);
+        
+        if (!added) {
+            // Check if it's due to the one-restaurant rule
+            String existingRid = cartManager.getCurrentRestaurantId();
+            if (existingRid != null && !existingRid.equals(currentPlace.getId()) && !cartManager.getCartItems().isEmpty()) {
+                new AlertDialog.Builder(this)
+                        .setTitle("Xoa gio hang?")
+                        .setMessage("Ban chi co the dat mon tu mot cua hang moi lan. Xoa gio hang hien tai de tiep tuc?")
+                        .setPositiveButton("Xoa", (dialog, which) -> {
+                            cartManager.clearCart();
+                            cartManager.addItem(currentPlace.getId(), currentPlace.getName(), item);
+                            updateCartBar();
+                        })
+                        .setNegativeButton("Huy", null)
+                        .show();
+            } else {
+                Toast.makeText(this, "Khong the them vao gio hang", Toast.LENGTH_SHORT).show();
+            }
             return;
         }
 
-        CartItem existing = cartItems.get(foodItem.getId());
-        if (existing == null) {
-            cartItems.put(foodItem.getId(), new CartItem(foodItem));
-        } else {
-            existing.setQuantity(existing.getQuantity() + 1);
-        }
         updateCartBar();
         Toast.makeText(this, "Da them vao gio hang", Toast.LENGTH_SHORT).show();
     }
 
     private void increaseCartItem(CartItem item) {
         if (item == null || item.getFoodItemId() == null) return;
-        CartItem existing = cartItems.get(item.getFoodItemId());
-        if (existing != null) {
-            existing.setQuantity(existing.getQuantity() + 1);
-        }
+        cartManager.updateQuantity(item.getFoodItemId(), item.getQuantity() + 1);
     }
 
     private void decreaseCartItem(CartItem item) {
         if (item == null || item.getFoodItemId() == null) return;
-        CartItem existing = cartItems.get(item.getFoodItemId());
-        if (existing == null) return;
-        int nextQuantity = existing.getQuantity() - 1;
-        if (nextQuantity <= 0) {
-            cartItems.remove(item.getFoodItemId());
-        } else {
-            existing.setQuantity(nextQuantity);
-        }
+        cartManager.updateQuantity(item.getFoodItemId(), item.getQuantity() - 1);
     }
 
     private void removeCartItem(CartItem item) {
         if (item == null || item.getFoodItemId() == null) return;
-        cartItems.remove(item.getFoodItemId());
+        cartManager.updateQuantity(item.getFoodItemId(), 0);
     }
 
     private void updateCartBar() {
@@ -412,27 +428,20 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
     }
 
     private int getCartItemCount() {
-        int count = 0;
-        for (CartItem item : cartItems.values()) {
-            count += item.getQuantity();
-        }
-        return count;
+        return cartManager.getTotalQuantity();
     }
 
     private double getCartTotal() {
-        double total = 0;
-        for (CartItem item : cartItems.values()) {
-            total += item.getSubtotal();
-        }
-        return total;
+        return cartManager.getTotalPrice();
     }
 
     private List<CartItem> getCartItems() {
-        return new ArrayList<>(cartItems.values());
+        return cartManager.getCartItems();
     }
 
     private void showCartDialog() {
-        if (cartItems.isEmpty()) return;
+        List<CartItem> items = getCartItems();
+        if (items.isEmpty()) return;
 
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.dialog_cart, null);
@@ -441,8 +450,9 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         TextView btnPlaceOrder = view.findViewById(R.id.btnPlaceOrder);
         RecyclerView rvCartItems = view.findViewById(R.id.rvCartItems);
 
-        if (currentPlace != null && currentPlace.getName() != null) {
-            tvCartRestaurantName.setText(currentPlace.getName());
+        String restName = cartManager.getCurrentRestaurantName();
+        if (restName != null) {
+            tvCartRestaurantName.setText(restName);
         }
 
         final CartAdapter[] adapterRef = new CartAdapter[1];
@@ -450,29 +460,29 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
             @Override
             public void onIncrease(CartItem item) {
                 increaseCartItem(item);
-                refreshCartDialog(adapterRef[0], tvCartTotalPrice, dialog);
+                refreshCartDialog(adapterRef[0], tvCartTotalPrice);
             }
 
             @Override
             public void onDecrease(CartItem item) {
                 decreaseCartItem(item);
-                refreshCartDialog(adapterRef[0], tvCartTotalPrice, dialog);
+                refreshCartDialog(adapterRef[0], tvCartTotalPrice);
             }
 
             @Override
             public void onRemove(CartItem item) {
                 removeCartItem(item);
-                refreshCartDialog(adapterRef[0], tvCartTotalPrice, dialog);
+                refreshCartDialog(adapterRef[0], tvCartTotalPrice);
             }
         });
         adapterRef[0] = adapter;
 
         rvCartItems.setLayoutManager(new LinearLayoutManager(this));
         rvCartItems.setAdapter(adapter);
-        refreshCartDialog(adapter, tvCartTotalPrice, dialog);
+        refreshCartDialog(adapter, tvCartTotalPrice);
 
         btnPlaceOrder.setOnClickListener(v -> {
-            if (cartItems.isEmpty()) {
+            if (getCartItems().isEmpty()) {
                 dialog.dismiss();
                 return;
             }
@@ -484,13 +494,10 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void refreshCartDialog(CartAdapter adapter, TextView tvCartTotalPrice, BottomSheetDialog dialog) {
+    private void refreshCartDialog(CartAdapter adapter, TextView tvCartTotalPrice) {
         updateCartBar();
-        if (cartItems.isEmpty()) {
-            dialog.dismiss();
-            return;
-        }
-        adapter.setItems(getCartItems());
+        List<CartItem> items = getCartItems();
+        adapter.setItems(items);
         tvCartTotalPrice.setText(formatPrice(getCartTotal()));
     }
 
@@ -498,7 +505,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("vi", "VN"));
         symbols.setGroupingSeparator('.');
         DecimalFormat df = new DecimalFormat("#,###", symbols);
-        return df.format((long) price) + "d";
+        return df.format(price) + "d";
     }
 
     private void openCheckout() {
@@ -516,7 +523,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
 
     private String serializeCartItems() {
         JSONArray array = new JSONArray();
-        for (CartItem item : cartItems.values()) {
+        for (CartItem item : getCartItems()) {
             JSONObject object = new JSONObject();
             try {
                 object.put("foodItemId", item.getFoodItemId());

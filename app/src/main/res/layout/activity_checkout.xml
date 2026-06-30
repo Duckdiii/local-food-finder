@@ -187,7 +187,6 @@
                         android:id="@+id/rbCod"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
-                        android:checked="true"
                         android:text="Thanh toan khi nhan hang (COD)"
                         android:textColor="@color/text_dark"
                         android:textSize="14sp" />

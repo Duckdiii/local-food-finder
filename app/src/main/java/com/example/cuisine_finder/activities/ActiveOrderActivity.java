@@ -137,6 +137,6 @@ public class ActiveOrderActivity extends AppCompatActivity {
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("vi", "VN"));
         symbols.setGroupingSeparator('.');
         DecimalFormat df = new DecimalFormat("#,###", symbols);
-        return df.format((long) price) + "d";
+        return df.format(price) + "đ";
     }
 }

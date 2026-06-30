@@ -24,6 +24,7 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder
 
     private final CartItemActionListener listener;
     private List<CartItem> items = new ArrayList<>();
+    private long lastClickTime = 0;
 
     public CartAdapter(CartItemActionListener listener) {
         this.listener = listener;
@@ -46,10 +47,22 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder
     public void onBindViewHolder(@NonNull CartViewHolder holder, int position) {
         CartItem item = items.get(position);
         holder.tvQuantity.setText(String.valueOf(item.getQuantity()));
-        holder.tvName.setText(item.getName() != null ? item.getName() : "Mon an");
-        holder.tvPrice.setText(formatPrice(item.getSubtotal()));
-        holder.btnIncrease.setOnClickListener(v -> listener.onIncrease(item));
-        holder.btnDecrease.setOnClickListener(v -> listener.onDecrease(item));
+        holder.tvName.setText(item.getName() != null ? item.getName() : "Món ăn");
+        holder.tvPrice.setText(formatPrice(item.getTotalPrice()));
+
+        // Fix #9: Debounce
+        holder.btnIncrease.setOnClickListener(v -> {
+            if (System.currentTimeMillis() - lastClickTime < 300) return;
+            lastClickTime = System.currentTimeMillis();
+            listener.onIncrease(item);
+        });
+
+        holder.btnDecrease.setOnClickListener(v -> {
+            if (System.currentTimeMillis() - lastClickTime < 300) return;
+            lastClickTime = System.currentTimeMillis();
+            listener.onDecrease(item);
+        });
+
         holder.btnRemove.setOnClickListener(v -> listener.onRemove(item));
     }
 
@@ -58,11 +71,12 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder
         return items.size();
     }
 
+    // Fix #2: Correct price formatting
     private String formatPrice(double price) {
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("vi", "VN"));
         symbols.setGroupingSeparator('.');
         DecimalFormat df = new DecimalFormat("#,###", symbols);
-        return df.format((long) price) + "d";
+        return df.format(price) + "đ";
     }
 
     static class CartViewHolder extends RecyclerView.ViewHolder {

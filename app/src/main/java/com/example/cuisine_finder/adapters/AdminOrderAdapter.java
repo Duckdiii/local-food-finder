@@ -78,7 +78,7 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Ad
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("vi", "VN"));
         symbols.setGroupingSeparator('.');
         DecimalFormat df = new DecimalFormat("#,###", symbols);
-        return df.format((long) price) + "d";
+        return df.format(price) + "đ";
     }
 
     static class AdminOrderViewHolder extends RecyclerView.ViewHolder {
