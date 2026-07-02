@@ -23,6 +23,13 @@ public class MainActivity extends AppCompatActivity {
 
     private AuthService authService;
 
+    public void updateBottomNavVisibility() {
+        BottomNavigationView bottomNav = findViewById(R.id.bottomNavigation);
+        if (bottomNav != null) {
+            bottomNav.setVisibility(authService.isLoggedIn() ? View.VISIBLE : View.GONE);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
         authService = new AuthService();
 
         BottomNavigationView bottomNav = findViewById(R.id.bottomNavigation);
+        updateBottomNavVisibility();
         
         // Load default fragment
         if (savedInstanceState == null) {

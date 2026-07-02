@@ -28,12 +28,13 @@
                 android:layout_height="44dp"
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="44dp"
-                android:background="@drawable/bg_icon_soft"
+                android:background="@drawable/bg_community_input_soft"
+                android:contentDescription="Quay lai"
+                android:elevation="2dp"
                 android:gravity="center"
-                android:text="←"
+                android:text="&#x2039;"
                 android:textColor="@color/orange_main"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textSize="30sp" />
 
             <!-- Profile info -->
             <LinearLayout

@@ -30,6 +30,78 @@
         android:textColor="@color/text_gray"
         android:textSize="14sp" />
 
+    <LinearLayout
+        android:id="@+id/layoutRecipientInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_chip_white"
+        android:orientation="vertical"
+        android:padding="14dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Thông tin người nhận"
+            android:textColor="@color/text_dark"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvRecipientName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Người nhận: Khách hàng"
+            android:textColor="@color/text_dark"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tvRecipientPhone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Số điện thoại: 0900000000"
+            android:textColor="@color/text_dark"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvRecipientAddress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Địa chỉ: 123 Nguyễn Trãi, Quận 1"
+            android:textColor="@color/text_gray"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tvRecipientNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Ghi chú: Gọi trước khi giao"
+            android:textColor="@color/text_gray"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/btnCallRecipient"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_chip_green_action"
+            android:gravity="center"
+            android:shadowColor="#55000000"
+            android:shadowDx="0"
+            android:shadowDy="1"
+            android:shadowRadius="2"
+            android:text="Gọi người nhận"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvAdminDetailItems"
         android:layout_width="match_parent"
@@ -56,8 +128,8 @@
             android:id="@+id/btnStatusPreparing"
             android:layout_width="0dp"
             android:layout_height="48dp"
-            android:layout_weight="1"
             android:layout_marginEnd="8dp"
+            android:layout_weight="1"
             android:background="@drawable/bg_chip_orange"
             android:gravity="center"
             android:text="Chế biến"
@@ -69,9 +141,9 @@
             android:id="@+id/btnStatusDelivering"
             android:layout_width="0dp"
             android:layout_height="48dp"
-            android:layout_weight="1"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
+            android:layout_weight="1"
             android:background="@drawable/bg_chip_white"
             android:gravity="center"
             android:text="Giao hàng"
@@ -83,10 +155,14 @@
             android:id="@+id/btnStatusCompleted"
             android:layout_width="0dp"
             android:layout_height="48dp"
-            android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:background="@drawable/bg_chip_green"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chip_green_action"
             android:gravity="center"
+            android:shadowColor="#55000000"
+            android:shadowDx="0"
+            android:shadowDy="1"
+            android:shadowRadius="2"
             android:text="Hoàn tất"
             android:textColor="@color/white"
             android:textSize="13sp"

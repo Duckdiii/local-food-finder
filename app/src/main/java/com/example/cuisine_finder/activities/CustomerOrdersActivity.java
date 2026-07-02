@@ -21,6 +21,7 @@ import java.util.List;
 public class CustomerOrdersActivity extends AppCompatActivity {
     private AdminOrderAdapter orderAdapter;
     private ListenerRegistration ordersListener;
+    private TextView tvEmptyOrders;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,8 +32,9 @@ public class CustomerOrdersActivity extends AppCompatActivity {
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
         TextView tvOrdersTitle = findViewById(R.id.tvOrdersTitle);
         TextView tvOrdersSubtitle = findViewById(R.id.tvOrdersSubtitle);
-        tvOrdersTitle.setText("Don hang cua toi");
-        tvOrdersSubtitle.setText("Bam vao don de xem trang thai moi nhat.");
+        tvOrdersTitle.setText("Đơn hàng của tôi");
+        tvOrdersSubtitle.setText("Bấm vào đơn để xem trạng thái mới nhất.");
+        tvEmptyOrders = findViewById(R.id.tvEmptyOrders);
 
         RecyclerView rvOrders = findViewById(R.id.rvAdminOrders);
         orderAdapter = new AdminOrderAdapter(this::openOrderTracking);
@@ -53,17 +55,18 @@ public class CustomerOrdersActivity extends AppCompatActivity {
     private void observeCustomerOrders() {
         String customerId = FirebaseAuth.getInstance().getUid();
         if (customerId == null) {
-            Toast.makeText(this, "Vui long dang nhap", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Vui lòng đăng nhập", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
 
+        // Khôi phục: Chỉ hiện đơn hàng của chính user này
         ordersListener = FirebaseFirestore.getInstance()
                 .collection("orders")
                 .whereEqualTo("customerId", customerId)
                 .addSnapshotListener((snapshot, error) -> {
                     if (error != null) {
-                        Toast.makeText(this, "Khong tai duoc don hang", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Không tải được đơn hàng", Toast.LENGTH_SHORT).show();
                         return;
                     }
                     if (snapshot == null) return;
@@ -77,6 +80,7 @@ public class CustomerOrdersActivity extends AppCompatActivity {
                     }
                     Collections.sort(orders, (a, b) -> Long.compare(b.getCreatedAt(), a.getCreatedAt()));
                     orderAdapter.setOrders(orders);
+                    updateEmptyState(orders.isEmpty());
                 });
     }
 
@@ -85,5 +89,10 @@ public class CustomerOrdersActivity extends AppCompatActivity {
         Intent intent = new Intent(this, ActiveOrderActivity.class);
         intent.putExtra(ActiveOrderActivity.EXTRA_ORDER_ID, order.getId());
         startActivity(intent);
+    }
+
+    private void updateEmptyState(boolean isEmpty) {
+        if (tvEmptyOrders == null) return;
+        tvEmptyOrders.setVisibility(isEmpty ? TextView.VISIBLE : TextView.GONE);
     }
 }

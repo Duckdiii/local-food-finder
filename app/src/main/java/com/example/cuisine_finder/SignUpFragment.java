@@ -86,6 +86,9 @@ public class SignUpFragment extends Fragment {
         userRepository.saveUser(user).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 Toast.makeText(getContext(), "Đăng ký thành công!", Toast.LENGTH_SHORT).show();
+                if (getActivity() instanceof com.example.cuisine_finder.activities.MainActivity) {
+                    ((com.example.cuisine_finder.activities.MainActivity) getActivity()).updateBottomNavVisibility();
+                }
                 navigateToHome();
             } else {
                 Toast.makeText(getContext(), "Lỗi lưu thông tin: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();

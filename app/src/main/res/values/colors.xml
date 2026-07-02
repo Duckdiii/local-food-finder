@@ -16,6 +16,8 @@
     <!-- Semantic Colors -->
     <color name="green_open">#4CAF50</color>
     <color name="green_light">#E8F5E9</color>
+    <color name="green_action">#2E7D32</color>
+    <color name="green_action_dark">#1B5E20</color>
     <color name="red_close">#F44336</color>
     <color name="red_light">#FFEBEE</color>
     <color name="border_light">#E0E0E0</color>
