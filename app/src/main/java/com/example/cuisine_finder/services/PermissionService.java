@@ -31,9 +31,10 @@ public class PermissionService {
     }
 
     public boolean canCustomerCancelOrder(User user, Order order) {
+        // Ownership, not role, is what matters: whoever placed the order acts as
+        // its customer even if their account role is MERCHANT or SYSTEM_ADMIN.
         return user != null
                 && order != null
-                && UserRole.isCustomer(user.getRole())
                 && user.getId() != null
                 && user.getId().equals(order.getCustomerId())
                 && OrderStatus.PENDING_MERCHANT_CONFIRMATION.equals(order.getStatus());

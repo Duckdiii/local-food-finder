@@ -408,10 +408,10 @@ public class CheckoutActivity extends AppCompatActivity {
         }
 
         new AlertDialog.Builder(this)
-                .setTitle("Xac nhan dat hang")
-                .setMessage("Ban co chac chan muon dat don hang nay?")
-                .setPositiveButton("Dat ngay", (dialog, which) -> performSubmit(customerId, phone, address, note))
-                .setNegativeButton("Xem lai", null)
+                .setTitle("Xác nhận đặt hàng")
+                .setMessage("Bạn có chắc chắn muốn đặt đơn hàng này?")
+                .setPositiveButton("Đặt ngay", (dialog, which) -> performSubmit(customerId, phone, address, note))
+                .setNegativeButton("Xem lại", null)
                 .show();
     }
 

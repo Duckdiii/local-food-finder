@@ -149,7 +149,7 @@ public class HocMonDataSeeder {
         place1.setReviewCount(1);
         place1.setFavoriteCount(0);
         place1.setExploredCount(0);
-        place1.setImageUrls(Collections.singletonList("https://images.unsplash.com/photo-1547058886-f3b0942d67db?auto=format&fit=crop&w=800&q=80"));
+        place1.setImageUrls(Collections.singletonList("https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=800&q=80"));
         place1.setCreatedBy("system");
         place1.setStatus("APPROVED");
         place1.setCreatedAt(now);
@@ -211,7 +211,7 @@ public class HocMonDataSeeder {
         place3.setReviewCount(1);
         place3.setFavoriteCount(0);
         place3.setExploredCount(0);
-        place3.setImageUrls(Collections.singletonList("https://images.unsplash.com/photo-1601050690597-df056fb4ce78?auto=format&fit=crop&w=800&q=80"));
+        place3.setImageUrls(Collections.singletonList("https://images.unsplash.com/photo-1540713434306-58505cf1b6fc?auto=format&fit=crop&w=800&q=80"));
         place3.setCreatedBy("system");
         place3.setStatus("APPROVED");
         place3.setCreatedAt(now);

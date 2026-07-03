@@ -47,7 +47,7 @@ public class ActiveOrderActivity extends AppCompatActivity {
         orderId = getIntent().getStringExtra(EXTRA_ORDER_ID);
         initViews();
         if (orderId == null || orderId.isEmpty()) {
-            Toast.makeText(this, "Khong tim thay ma don hang", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Không tìm thấy mã đơn hàng", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -87,11 +87,11 @@ public class ActiveOrderActivity extends AppCompatActivity {
                 .document(orderId)
                 .addSnapshotListener((snapshot, error) -> {
                     if (error != null) {
-                        Toast.makeText(this, "Khong tai duoc don hang", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Không tải được đơn hàng", Toast.LENGTH_SHORT).show();
                         return;
                     }
                     if (snapshot == null || !snapshot.exists()) {
-                        Toast.makeText(this, "Don hang khong ton tai", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Đơn hàng không tồn tại", Toast.LENGTH_SHORT).show();
                         return;
                     }
                     Order order = snapshot.toObject(Order.class);
@@ -107,7 +107,7 @@ public class ActiveOrderActivity extends AppCompatActivity {
         }
         currentOrder = order;
         tvOrderStatus.setText(getStatusLabel(order.getStatus()));
-        tvOrderRestaurantName.setText(order.getRestaurantName() != null ? order.getRestaurantName() : "Quan an");
+        tvOrderRestaurantName.setText(order.getRestaurantName() != null ? order.getRestaurantName() : "Quán ăn");
         tvOrderTotalPrice.setText(formatPrice(order.getTotalAmount()));
         orderItemAdapter.setItems(order.getItems());
         updateProgress(order.getStatus());
@@ -198,18 +198,18 @@ public class ActiveOrderActivity extends AppCompatActivity {
     }
 
     private String getStatusLabel(String status) {
-        if (OrderStatus.PENDING_MERCHANT_CONFIRMATION.equals(status)) return "Cho quan nhan don";
-        if (OrderStatus.MERCHANT_ACCEPTED.equals(status)) return "Quan da nhan don";
-        if (OrderStatus.PREPARING.equals(status)) return "Quan dang lam mon";
-        if (OrderStatus.READY_FOR_PICKUP.equals(status)) return "Quan san sang giao";
-        if (OrderStatus.SHIPPER_ACCEPTED.equals(status)) return "Quan da nhan giao";
-        if (OrderStatus.PICKED_UP.equals(status)) return "Quan dang dua don di giao";
-        if (OrderStatus.SHIPPING.equals(status)) return "Quan dang giao hang";
-        if (OrderStatus.DELIVERED.equals(status)) return "Giao hang thanh cong";
-        if (OrderStatus.DELIVERY_FAILED.equals(status)) return "Giao hang that bai";
-        if (OrderStatus.CANCELLED_BY_CUSTOMER.equals(status)) return "Don da huy";
-        if (OrderStatus.REJECTED_BY_MERCHANT.equals(status)) return "Quan tu choi don";
-        return "Dang cap nhat";
+        if (OrderStatus.PENDING_MERCHANT_CONFIRMATION.equals(status)) return "Chờ quán nhận đơn";
+        if (OrderStatus.MERCHANT_ACCEPTED.equals(status)) return "Quán đã nhận đơn";
+        if (OrderStatus.PREPARING.equals(status)) return "Quán đang làm món";
+        if (OrderStatus.READY_FOR_PICKUP.equals(status)) return "Quán sẵn sàng giao";
+        if (OrderStatus.SHIPPER_ACCEPTED.equals(status)) return "Quán đã nhận giao";
+        if (OrderStatus.PICKED_UP.equals(status)) return "Quán đang đưa đơn đi giao";
+        if (OrderStatus.SHIPPING.equals(status)) return "Quán đang giao hàng";
+        if (OrderStatus.DELIVERED.equals(status)) return "Giao hàng thành công";
+        if (OrderStatus.DELIVERY_FAILED.equals(status)) return "Giao hàng thất bại";
+        if (OrderStatus.CANCELLED_BY_CUSTOMER.equals(status)) return "Đơn đã hủy";
+        if (OrderStatus.REJECTED_BY_MERCHANT.equals(status)) return "Quán từ chối đơn";
+        return "Đang cập nhật";
     }
 
     private String formatPrice(double price) {

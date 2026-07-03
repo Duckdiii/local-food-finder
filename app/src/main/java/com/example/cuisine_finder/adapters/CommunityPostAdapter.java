@@ -141,8 +141,11 @@ public class CommunityPostAdapter extends RecyclerView.Adapter<CommunityPostAdap
             tvAuthorAvatar.setText(authorName.substring(0, 1).toUpperCase(Locale.getDefault()));
             tvAuthorName.setText(authorName);
             tvPostTime.setText(formatTime(post.getCreatedAt()));
-            tvDistanceBadge.setText(formatDistanceBadge(post.getDistanceKm()));
-            tvDistanceBadge.setVisibility(post.getDistanceKm() > 0 ? View.VISIBLE : View.GONE);
+            boolean hasKnownDistance = post.getDistanceKm() > 0 && post.getDistanceKm() < Double.MAX_VALUE;
+            if (hasKnownDistance) {
+                tvDistanceBadge.setText(formatDistanceText(post.getDistanceKm()));
+            }
+            tvDistanceBadge.setVisibility(hasKnownDistance ? View.VISIBLE : View.GONE);
 
             bindCaption(post);
             bindImage(context, post);
@@ -282,10 +285,6 @@ public class CommunityPostAdapter extends RecyclerView.Adapter<CommunityPostAdap
 
         private int dp(Context context, int value) {
             return (int) (value * context.getResources().getDisplayMetrics().density);
-        }
-
-        private String formatDistanceBadge(double distanceKm) {
-            return String.format(Locale.getDefault(), "%.1f", distanceKm);
         }
 
         private String formatDistanceText(double distanceKm) {
