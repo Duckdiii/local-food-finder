@@ -72,7 +72,11 @@ public class CommunityFragment extends Fragment {
     private PlaceRepository placeRepository;
 
     private TextView tvCurrentDistrictRoom;
-    private TextView tvCommunityEmpty;
+    private LinearLayout layoutCommunityEmpty;
+    private TextView tvEmptyEmoji;
+    private TextView tvEmptyTitle;
+    private TextView tvEmptySubtitle;
+    private TextView btnEmptyCompose;
     private View btnFeaturedTab;
     private TextView tvFeaturedTab;
     private TextView btnSwitchRoomTab;
@@ -83,6 +87,7 @@ public class CommunityFragment extends Fragment {
     private FeedFilter currentFilter = FeedFilter.FEATURED;
     private String searchQuery = "";
     private String currentUserId;
+    private boolean isFirstLoadCompleted = false;
 
     private Uri selectedPostImageUri;
     private LinearLayout layoutSelectedImage;
@@ -159,7 +164,14 @@ public class CommunityFragment extends Fragment {
 
     private void initViews(View view) {
         tvCurrentDistrictRoom = view.findViewById(R.id.tvCurrentDistrictRoom);
-        tvCommunityEmpty = view.findViewById(R.id.tvCommunityEmpty);
+        layoutCommunityEmpty = view.findViewById(R.id.layoutCommunityEmpty);
+        tvEmptyEmoji = view.findViewById(R.id.tvEmptyEmoji);
+        tvEmptyTitle = view.findViewById(R.id.tvEmptyTitle);
+        tvEmptySubtitle = view.findViewById(R.id.tvEmptySubtitle);
+        btnEmptyCompose = view.findViewById(R.id.btnEmptyCompose);
+        if (btnEmptyCompose != null) {
+            btnEmptyCompose.setOnClickListener(v -> showCreatePostDialog());
+        }
         btnFeaturedTab = view.findViewById(R.id.btnFeaturedTab);
         tvFeaturedTab = view.findViewById(R.id.tvFeaturedTab);
         btnSwitchRoomTab = view.findViewById(R.id.btnSwitchRoomTab);
@@ -242,8 +254,9 @@ public class CommunityFragment extends Fragment {
     }
 
     private void startListeningPosts() {
-        tvCommunityEmpty.setVisibility(View.VISIBLE);
-        tvCommunityEmpty.setText("Đang tải bài viết...");
+        if (layoutCommunityEmpty != null) {
+            layoutCommunityEmpty.setVisibility(View.GONE);
+        }
         communityRepository.removeLegacyMockPosts()
                 .addOnCompleteListener(task -> {
                     if (isAdded()) {
@@ -256,6 +269,7 @@ public class CommunityFragment extends Fragment {
         postsRegistration = communityRepository.listenPosts(new CommunityRepository.PostsListener() {
             @Override
             public void onPostsChanged(List<CommunityPost> posts) {
+                isFirstLoadCompleted = true;
                 allPosts.clear();
                 allPosts.addAll(posts);
                 applyFilter();
@@ -264,8 +278,22 @@ public class CommunityFragment extends Fragment {
             @Override
             public void onError(Exception error) {
                 if (!isAdded()) return;
-                tvCommunityEmpty.setVisibility(View.VISIBLE);
-                tvCommunityEmpty.setText("Không tải được bài viết cộng đồng");
+                if (layoutCommunityEmpty != null) {
+                    layoutCommunityEmpty.setVisibility(View.VISIBLE);
+                }
+                if (tvEmptyEmoji != null) tvEmptyEmoji.setText("⚠️");
+                if (tvEmptyTitle != null) tvEmptyTitle.setText("Lỗi tải bài viết");
+                if (tvEmptySubtitle != null) {
+                    tvEmptySubtitle.setText("Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.");
+                }
+                if (btnEmptyCompose != null) {
+                    btnEmptyCompose.setText("Thử lại ↻");
+                    btnEmptyCompose.setOnClickListener(v -> {
+                        if (layoutCommunityEmpty != null) layoutCommunityEmpty.setVisibility(View.GONE);
+                        if (postAdapter != null) postAdapter.setLoading(true);
+                        startListeningPosts();
+                    });
+                }
                 Toast.makeText(requireContext(), "Lỗi tải bài viết: " + error.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
@@ -342,12 +370,49 @@ public class CommunityFragment extends Fragment {
     }
 
     private void updateEmptyState(boolean empty) {
-        tvCommunityEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+        if (!isFirstLoadCompleted) {
+            if (layoutCommunityEmpty != null) layoutCommunityEmpty.setVisibility(View.GONE);
+            return;
+        }
+
+        if (layoutCommunityEmpty != null) {
+            layoutCommunityEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+        }
+
         if (!empty) return;
+
+        // Reset the button to the default compose post action
+        if (btnEmptyCompose != null) {
+            btnEmptyCompose.setText("Chia sẻ món ngon ngay ✎");
+            btnEmptyCompose.setOnClickListener(v -> showCreatePostDialog());
+        }
+
         if (!TextUtils.isEmpty(searchQuery)) {
-            tvCommunityEmpty.setText("Không tìm thấy kết quả cho '" + searchQuery + "'");
+            if (tvEmptyEmoji != null) tvEmptyEmoji.setText("🔍🥡");
+            if (tvEmptyTitle != null) tvEmptyTitle.setText("Không tìm thấy kết quả");
+            if (tvEmptySubtitle != null) {
+                tvEmptySubtitle.setText("Không tìm thấy bài viết nào khớp với từ khóa \"" + searchQuery + "\".");
+            }
         } else {
-            tvCommunityEmpty.setText("Chưa có bài viết nào");
+            if (currentFilter == FeedFilter.NEARBY) {
+                if (tvEmptyEmoji != null) tvEmptyEmoji.setText("📍🍜");
+                if (tvEmptyTitle != null) tvEmptyTitle.setText("Quanh đây chưa có bài viết");
+                if (tvEmptySubtitle != null) {
+                    tvEmptySubtitle.setText("Hãy là người đầu tiên chia sẻ món ăn ngon ở khu vực này nhé!");
+                }
+            } else if (currentFilter == FeedFilter.NIGHT) {
+                if (tvEmptyEmoji != null) tvEmptyEmoji.setText("🌙🍔");
+                if (tvEmptyTitle != null) tvEmptyTitle.setText("Chưa có món ăn đêm");
+                if (tvEmptySubtitle != null) {
+                    tvEmptySubtitle.setText("Khuya rồi nhưng chưa ai chia sẻ gì cả. Hãy chia sẻ món ăn đêm ngay nhé!");
+                }
+            } else {
+                if (tvEmptyEmoji != null) tvEmptyEmoji.setText("🍜✨");
+                if (tvEmptyTitle != null) tvEmptyTitle.setText("Chưa có bài viết nào");
+                if (tvEmptySubtitle != null) {
+                    tvEmptySubtitle.setText("Hãy là người đầu tiên chia sẻ món ngon tuyệt vời tại đây nhé!");
+                }
+            }
         }
     }
 

@@ -70,9 +70,15 @@ public class SearchResultFragment extends Fragment {
     private final FilterState filterState = new FilterState();
 
     public static SearchResultFragment newInstance(String query) {
+        return newInstance(query, null, null);
+    }
+
+    public static SearchResultFragment newInstance(String query, String filterType, String filterValue) {
         SearchResultFragment fragment = new SearchResultFragment();
         Bundle args = new Bundle();
         args.putString("query", query);
+        args.putString("filterType", filterType);
+        args.putString("filterValue", filterValue);
         fragment.setArguments(args);
         return fragment;
     }
@@ -80,11 +86,27 @@ public class SearchResultFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        String filterType = null;
+        String filterValue = null;
         if (getArguments() != null) {
             initialQuery = getArguments().getString("query", "");
+            filterType = getArguments().getString("filterType", null);
+            filterValue = getArguments().getString("filterValue", null);
         }
         currentQuery = initialQuery != null ? initialQuery.trim() : "";
         historyManager = new SearchHistoryManager(requireContext());
+
+        if (filterType != null) {
+            if ("OPEN_NOW".equals(filterType)) {
+                filterState.openNow = true;
+            } else if ("MIN_RATING".equals(filterType)) {
+                filterState.minRating = Double.parseDouble(filterValue);
+            } else if ("PRICE_RANGE".equals(filterType)) {
+                if ("CHEAP".equals(filterValue)) {
+                    filterState.maxPrice = 100000.0;
+                }
+            }
+        }
     }
 
     @Nullable
@@ -250,7 +272,11 @@ public class SearchResultFragment extends Fragment {
         displayList.clear();
 
         String normalizedQuery = normalizeText(currentQuery);
-        if (normalizedQuery.isEmpty()) {
+        boolean hasActiveFilter = filterState.foodType != null || filterState.minRating != null 
+                || filterState.minPrice != null || filterState.maxPrice != null 
+                || filterState.openNow || filterState.openLate;
+
+        if (normalizedQuery.isEmpty() && !hasActiveFilter) {
             updateResultSummary(0, 0);
             displayList.add(ResultRow.empty(
                     "Nhập từ khóa để tìm món ăn hoặc quán ăn",
@@ -315,7 +341,8 @@ public class SearchResultFragment extends Fragment {
 
     private boolean matchesFoodItem(FoodItem foodItem, String normalizedQuery) {
         FoodPlace linkedPlace = getPlaceForItem(foodItem);
-        if (foodItem == null || !matchesQuery(foodItem, normalizedQuery)) {
+        if (foodItem == null) return false;
+        if (!normalizedQuery.isEmpty() && !matchesQuery(foodItem, normalizedQuery)) {
             return false;
         }
         if (!TextUtils.isEmpty(foodItem.getPlaceId()) && linkedPlace == null) {
@@ -334,7 +361,8 @@ public class SearchResultFragment extends Fragment {
     }
 
     private boolean matchesFoodPlace(FoodPlace place, String normalizedQuery) {
-        if (place == null || !matchesQuery(place, normalizedQuery)) {
+        if (place == null) return false;
+        if (!normalizedQuery.isEmpty() && !matchesQuery(place, normalizedQuery)) {
             return false;
         }
         if (!matchesFoodType(place.getFoodType(), joinTexts(place.getTags()), place)) {

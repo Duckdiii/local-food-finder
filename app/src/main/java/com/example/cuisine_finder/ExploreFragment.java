@@ -83,6 +83,8 @@ public class ExploreFragment extends Fragment {
     private String filterPrice = null; // null | "CHEAP" | "MEDIUM" | "EXPENSIVE"
     private GeoPoint myCurrentLocation = null;
     private boolean hasAutoLoadedNearby = false;
+    private boolean pendingApplyNearMeFilter = false;
+    public static boolean pendingNearMeFilter = false;
 
     // Data
     private PlaceRepository placeRepository;
@@ -96,6 +98,7 @@ public class ExploreFragment extends Fragment {
     private Polygon locationCircleOverlay;
     private final Map<String, Marker> markersByPlaceId = new HashMap<>();
     private final Map<String, Integer> markerBaseColors = new HashMap<>();
+    private final Map<String, String> markerEmojis = new HashMap<>();
     private String selectedMarkerId = null;
 
     @Nullable
@@ -155,7 +158,7 @@ public class ExploreFragment extends Fragment {
         chipExpensive = view.findViewById(R.id.chipExpensive);
         chipOpenLate  = view.findViewById(R.id.chipOpenLate);
 
-        btnLocation.setOnClickListener(v -> requestCurrentLocation());
+        btnLocation.setOnClickListener(v -> requestCurrentLocation(false));
         btnCloseSheet.setOnClickListener(v -> hideSheet());
 
         btnBackToList.setOnClickListener(v -> {
@@ -240,7 +243,7 @@ public class ExploreFragment extends Fragment {
             if (filterNearMe && myCurrentLocation == null) {
                 // Request location first; chip visually stays inactive until we get it
                 filterNearMe = false;
-                requestCurrentLocation();
+                requestCurrentLocation(true);
             } else {
                 setChipActive(chipNearMe, filterNearMe);
                 refreshMap();
@@ -387,8 +390,7 @@ public class ExploreFragment extends Fragment {
         //Nếu chỉ có 1 quán: App tự động "bay" (animate) đến đúng vị trí quán đó và phóng to tối đa để người dùng thấy rõ đường đi.
         //Nếu có nhiều quán: App sử dụng hàm zoomToFitAll. Nó sẽ tự tính toán mức thu nhỏ vừa đủ để tất cả các ghim tìm thấy đều hiện ra trên màn hình, người dùng không cần phải vuốt đi đâu cả.
         if (validPoints.size() == 1) {
-            mapView.getController().animateTo(validPoints.get(0));
-            mapView.getController().setZoom(17.0);
+            animateCamera(validPoints.get(0), 17.0);
         } else if (validPoints.size() > 1) {
             zoomToFitAll(validPoints);
         }
@@ -423,7 +425,9 @@ public class ExploreFragment extends Fragment {
         marker.setPosition(point);
         marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
         marker.setTitle(place.getName());
-        marker.setIcon(new BitmapDrawable(getResources(), createPinBitmap(color)));
+
+        String emoji = getEmojiForCategory(place.getFoodType());
+        marker.setIcon(new BitmapDrawable(getResources(), createPinBitmap(color, emoji)));
         marker.setOnMarkerClickListener((m, mv) -> {
             selectMarker(place, m);
             return true;
@@ -432,6 +436,7 @@ public class ExploreFragment extends Fragment {
         if (place.getId() != null) {
             markersByPlaceId.put(place.getId(), marker);
             markerBaseColors.put(place.getId(), color);
+            markerEmojis.put(place.getId(), emoji);
         }
         markerClusterer.add(marker);
     }
@@ -441,13 +446,15 @@ public class ExploreFragment extends Fragment {
         if (selectedMarkerId != null) {
             Marker prev = markersByPlaceId.get(selectedMarkerId);
             Integer prevColor = markerBaseColors.get(selectedMarkerId);
+            String prevEmoji = markerEmojis.get(selectedMarkerId);
             if (prev != null && prevColor != null) {
-                prev.setIcon(new BitmapDrawable(getResources(), createPinBitmap(prevColor)));
+                prev.setIcon(new BitmapDrawable(getResources(), createPinBitmap(prevColor, prevEmoji != null ? prevEmoji : "🍲")));
             }
         }
         // Highlight new selection in orange
         int orange = ContextCompat.getColor(requireContext(), R.color.orange_main);
-        marker.setIcon(new BitmapDrawable(getResources(), createPinBitmap(orange)));
+        String currentEmoji = getEmojiForCategory(place.getFoodType());
+        marker.setIcon(new BitmapDrawable(getResources(), createPinBitmap(orange, currentEmoji)));
         selectedMarkerId = place.getId();
         mapView.invalidate();
 
@@ -467,6 +474,7 @@ public class ExploreFragment extends Fragment {
         }
         markersByPlaceId.clear();
         markerBaseColors.clear();
+        markerEmojis.clear();
         selectedMarkerId = null;
 
         if (mapView != null && locationCircleOverlay != null) {
@@ -500,11 +508,11 @@ public class ExploreFragment extends Fragment {
         mapView.invalidate();// Yêu cầu bản đồ vẽ lạ để hiển thị vòng tròn mới hoặc xóa vòng tròn cũ
     }
 
-    /** Draws a pin-shaped bitmap: filled circle + triangle tail + white center dot. */
-    private Bitmap createPinBitmap(int color) {
+    /** Draws a pin-shaped bitmap: filled circle + triangle tail + centered emoji on a white dot background. */
+    private Bitmap createPinBitmap(int color, String emoji) {
         float dp = getResources().getDisplayMetrics().density;
-        int r      = (int) (14 * dp);  // circle radius
-        int tailH  = (int) (10 * dp);
+        int r      = (int) (18 * dp);  // circle radius (slightly larger to fit emoji nicely)
+        int tailH  = (int) (12 * dp);
         int w = r * 2;
         int h = w + tailH;
 
@@ -512,9 +520,11 @@ public class ExploreFragment extends Fragment {
         Canvas canvas = new Canvas(bm);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
+        // Draw pin background color
         paint.setColor(color);
         canvas.drawCircle(r, r, r, paint);
 
+        // Draw tail
         Path tail = new Path();
         tail.moveTo(r - r * 0.4f, r + r * 0.35f);
         tail.lineTo(r + r * 0.4f, r + r * 0.35f);
@@ -522,10 +532,45 @@ public class ExploreFragment extends Fragment {
         tail.close();
         canvas.drawPath(tail, paint);
 
+        // Draw inner white circle badge
         paint.setColor(Color.WHITE);
-        canvas.drawCircle(r, r, r * 0.35f, paint);
+        canvas.drawCircle(r, r, r * 0.65f, paint);
+
+        // Draw centered emoji
+        Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setTextSize(r * 0.9f);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        Paint.FontMetrics fm = textPaint.getFontMetrics();
+        float yOffset = (fm.descent + fm.ascent) / 2;
+        canvas.drawText(emoji != null ? emoji : "🍲", r, r - yOffset, textPaint);
 
         return bm;
+    }
+
+    private String getEmojiForCategory(String name) {
+        if (name == null) return "🍲";
+        String lower = name.toLowerCase(java.util.Locale.getDefault());
+        if (lower.contains("coffee") || lower.contains("cà phê") || lower.contains("cafe")) return "☕";
+        if (lower.contains("phở") || lower.contains("bún") || lower.contains("hủ tiếu")) return "🍜";
+        if (lower.contains("cơm tấm")) return "🍛";
+        if (lower.contains("cơm")) return "🍚";
+        if (lower.contains("lẩu")) return "🫕";
+        if (lower.contains("ốc") || lower.contains("hải sản")) return "🦪";
+        if (lower.contains("bánh") || lower.contains("bake")) return "🥐";
+        if (lower.contains("nướng") || lower.contains("bbq") || lower.contains("grills")) return "🍖";
+        if (lower.contains("kem") || lower.contains("ice cream")) return "🍦";
+        if (lower.contains("trà sữa") || lower.contains("milk tea") || lower.contains("bubble")) return "🧋";
+        if (lower.contains("trà") || lower.contains("tea")) return "🍵";
+        if (lower.contains("pizza")) return "🍕";
+        if (lower.contains("burger") || lower.contains("hamburger")) return "🍔";
+        if (lower.contains("sushi") || lower.contains("nhật")) return "🍣";
+        if (lower.contains("chè")) return "🍧";
+        if (lower.contains("gà") || lower.contains("chicken")) return "🍗";
+        if (lower.contains("chay") || lower.contains("vegetarian")) return "🥗";
+        if (lower.contains("xôi")) return "🍙";
+        if (lower.contains("cháo") || lower.contains("mì")) return "🥣";
+        if (lower.contains("vặt")) return "🍢";
+        return "🍲";
     }
 
     private void geocodeFallback(FoodPlace place) {
@@ -555,8 +600,7 @@ public class ExploreFragment extends Fragment {
                                 addMarker(place, point);
                                 mapView.invalidate();
                                 if (foundPlaces.size() == 1) {
-                                    mapView.getController().animateTo(point);
-                                    mapView.getController().setZoom(17.0);
+                                    animateCamera(point, 17.0);
                                 }
                             }
                         });
@@ -638,17 +682,33 @@ public class ExploreFragment extends Fragment {
 
     // ─── Location ─────────────────────────────────────────────────────────────
 
-    private void requestCurrentLocation() {
+    private void requestCurrentLocation(boolean applyFilter) { //kiểm tra quyền truy cập vị trí
+        //Kiểm tra xem quyền ACCESS_FINE_LOCATION đã được cấp chưa
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
+            pendingApplyNearMeFilter = applyFilter;
+            //Nếu chưa được cấp, ứng dụng sẽ hiện hộp thoại của Android để xin quyền
             requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_REQUEST);
             return;
         }
-        goToMyLocation();
+        goToMyLocation(applyFilter); // sau khi lấy được vị trí thì map sẽ di chuyển đến vị trí của mình
     }
 
-    private void goToMyLocation() {//   Hàm này sẽ lấy vị trí hiện tại của người dùng và hiển thị nó trên bản đồ. Nếu đã có vị trí gần đây, nó sẽ sử dụng vị trí đó. Nếu không, nó sẽ yêu cầu cập nhật vị trí từ GPS hoặc mạng. Khi nhận được vị trí, nó sẽ gọi onLocationReceived để xử lý.
+    private void goToMyLocation(boolean applyFilter) {//   Hàm này sẽ lấy vị trí hiện tại của người dùng và hiển thị nó trên bản đồ. Nếu đã có vị trí gần đây, nó sẽ sử dụng vị trí đó. Nếu không, nó sẽ yêu cầu cập nhật vị trí từ GPS hoặc mạng. Khi nhận được vị trí, nó sẽ gọi onLocationReceived để xử lý.
+        if (myCurrentLocation != null) {
+            showMyLocationMarker(myCurrentLocation);
+            animateCamera(myCurrentLocation, 16.0);
+            if (applyFilter) {
+                if (!filterNearMe) {
+                    filterNearMe = true;
+                    setChipActive(chipNearMe, true);
+                }
+                refreshMap();
+            }
+            return;
+        }
+
         LocationManager lm = (LocationManager) //dịch vụ hệ thống Android dùng để truy cập GPS và vị trí thiết bị
                 requireContext().getSystemService(Context.LOCATION_SERVICE); //yêu cầu Android cung cấp service quản lý vị trí
         if (lm == null) return;
@@ -657,13 +717,13 @@ public class ExploreFragment extends Fragment {
             if (last == null) last = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
 
             if (last != null) {
-                onLocationReceived(new GeoPoint(last.getLatitude(), last.getLongitude()));
+                onLocationReceived(new GeoPoint(last.getLatitude(), last.getLongitude()), applyFilter);
             } else {
                 Toast.makeText(getContext(), "Đang lấy vị trí...", Toast.LENGTH_SHORT).show();
                 LocationListener listener = loc -> { // Nhận tọa độ mới từ cảm biến
                     if (!isAdded()) return;
                     requireActivity().runOnUiThread(() ->
-                            onLocationReceived(new GeoPoint(loc.getLatitude(), loc.getLongitude())));
+                            onLocationReceived(new GeoPoint(loc.getLatitude(), loc.getLongitude()), applyFilter));
                 };
                 if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                     lm.requestSingleUpdate(LocationManager.GPS_PROVIDER, listener,//    Yêu cầu cập nhật vị trí một lần từ GPS và gọi listener khi có kết quả
@@ -680,16 +740,17 @@ public class ExploreFragment extends Fragment {
         }
     }
 
-    private void onLocationReceived(GeoPoint point) { // Xử lý sau khi đã lấy được tọa độ vị trí thành công
+    private void onLocationReceived(GeoPoint point, boolean applyFilter) { // Xử lý sau khi đã lấy được tọa độ vị trí thành công
         myCurrentLocation = point;
         showMyLocationMarker(point);
-        mapView.getController().animateTo(point); // Di chuyển camera bản đồ đến vị trí hiện tại
-        mapView.getController().setZoom(16.0); // Thiết lập mức phóng to phù hợp để quan sát khu vực xung quanh
-        if (!filterNearMe) {
-            filterNearMe = true;
-            setChipActive(chipNearMe, true);
+        animateCamera(point, 16.0); // Di chuyển camera bản đồ đến vị trí hiện tại và phóng to mượt mà
+        if (applyFilter) {
+            if (!filterNearMe) {
+                filterNearMe = true;
+                setChipActive(chipNearMe, true);
+            }
+            refreshMap();
         }
-        refreshMap();
     }
 
     private void showMyLocationMarker(GeoPoint point) {//   Hàm này hiển thị một ghim đánh dấu vị trí hiện tại của người dùng trên bản đồ. Nếu đã có ghim cũ, nó sẽ xóa ghim đó trước khi thêm ghim mới. Ghim này được đặt ở trung tâm của vị trí hiện tại và có tiêu đề "Vị trí của bạn".
@@ -704,11 +765,12 @@ public class ExploreFragment extends Fragment {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-            @NonNull int[] grantResults) {
+            @NonNull int[] grantResults) { //Sau khi hộp thoại xin quyền của hệ thống Android hiển thị và khách hàng chọn Đồng ý hoặc Từ chối, kết quả sẽ được trả về hàm callback
         if (requestCode == LOCATION_PERMISSION_REQUEST
                 && grantResults.length > 0
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            goToMyLocation();
+            // Khách hàng đồng ý cấp quyền -> Tiến hành lấy vị trí
+            goToMyLocation(pendingApplyNearMeFilter);
         } else {
             Toast.makeText(getContext(), "Cần quyền vị trí để dùng tính năng này",
                     Toast.LENGTH_SHORT).show();
@@ -721,9 +783,17 @@ public class ExploreFragment extends Fragment {
         return place.getLatitude() != 0.0 || place.getLongitude() != 0.0;
     }
 
+    private void animateCamera(GeoPoint point, double zoom, long duration) {
+        if (mapView == null) return;
+        mapView.getController().animateTo(point, zoom, duration, null);
+    }
+
+    private void animateCamera(GeoPoint point, double zoom) {
+        animateCamera(point, zoom, 800L);
+    }
+
     private void zoomToPlace(FoodPlace place) {
-        mapView.getController().animateTo(new GeoPoint(place.getLatitude(), place.getLongitude()));
-        mapView.getController().setZoom(17.0);
+        animateCamera(new GeoPoint(place.getLatitude(), place.getLongitude()), 17.0);
     }
 
     private void zoomToFitAll(List<GeoPoint> points) {
@@ -882,7 +952,11 @@ public class ExploreFragment extends Fragment {
         super.onResume();
         if (mapView != null) {
             mapView.onResume();
-            if (!hasAutoLoadedNearby) {
+            if (pendingNearMeFilter) {
+                pendingNearMeFilter = false;
+                hasAutoLoadedNearby = true;
+                mapView.post(() -> goToMyLocation(true));
+            } else if (!hasAutoLoadedNearby) {
                 // Run after map finishes its own resume setup
                 mapView.post(this::tryAutoLoadNearby);
             }
@@ -900,7 +974,7 @@ public class ExploreFragment extends Fragment {
             return; // Chưa có quyền — bỏ qua, chờ user chủ động
         }
         hasAutoLoadedNearby = true;
-        goToMyLocation(); // → onLocationReceived → filterNearMe=true → refreshMap
+        goToMyLocation(true); // → onLocationReceived → filterNearMe=true → refreshMap
     }
 
     @Override

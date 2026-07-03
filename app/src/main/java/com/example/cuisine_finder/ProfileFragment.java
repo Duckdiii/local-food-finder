@@ -1,15 +1,30 @@
 package com.example.cuisine_finder;
 
+import android.animation.ValueAnimator;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.DecelerateInterpolator;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CircleCrop;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 import com.example.cuisine_finder.activities.AchievementsActivity;
 import com.example.cuisine_finder.activities.EditProfileActivity;
 import com.example.cuisine_finder.activities.FriendsActivity;
@@ -35,6 +50,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ProfileFragment extends Fragment {
 
     private TextView tvFullName, tvEmail, tvAvatarInit;
+    private ImageView ivAvatarReal;
+    private View avatarContainer;
+    private ProgressBar avatarUploadProgress;
+    private SwipeRefreshLayout swipeRefreshProfile;
     private TextView tvExploredCount, tvContributedCount, tvReviewCount;
     private TextView tvFriendCount, tvPendingCount, tvOrderManagementTitle;
     private MaterialCardView cardFriends, cardPendingBadge;
@@ -48,6 +67,11 @@ public class ProfileFragment extends Fragment {
     private FriendshipRepository friendshipRepository;
     private AuthService authService;
     private String currentUserId;
+
+    private final ActivityResultLauncher<String> galleryLauncher =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                if (uri != null) uploadAvatarFromUri(uri);
+            });
 
     @Nullable
     @Override
@@ -67,9 +91,7 @@ public class ProfileFragment extends Fragment {
         }
 
         initViews(view);
-        loadUserProfile();
-        loadStatistics();
-        loadFriendStats();
+        refreshAllData();
 
         return view;
     }
@@ -78,6 +100,24 @@ public class ProfileFragment extends Fragment {
         tvFullName = view.findViewById(R.id.tvFullName);
         tvEmail = view.findViewById(R.id.tvEmail);
         tvAvatarInit = view.findViewById(R.id.tvAvatarInit);
+        swipeRefreshProfile = view.findViewById(R.id.swipeRefreshProfile);
+        if (swipeRefreshProfile != null) {
+            swipeRefreshProfile.setColorSchemeColors(
+                    ContextCompat.getColor(requireContext(), R.color.orange_main)
+            );
+            swipeRefreshProfile.setOnRefreshListener(() -> {
+                refreshAllData();
+            });
+        }
+
+        ivAvatarReal = view.findViewById(R.id.ivAvatarReal);
+        avatarContainer = view.findViewById(R.id.avatarContainer);
+        avatarUploadProgress = view.findViewById(R.id.avatarUploadProgress);
+
+        if (avatarContainer != null) {
+            avatarContainer.setOnClickListener(v -> galleryLauncher.launch("image/*"));
+        }
+
         tvExploredCount = view.findViewById(R.id.tvExploredCount);
         tvContributedCount = view.findViewById(R.id.tvContributedCount);
         tvReviewCount = view.findViewById(R.id.tvReviewCount);
@@ -155,9 +195,11 @@ public class ProfileFragment extends Fragment {
         });
     }
 
-    private void loadUserProfile() {
-        if (currentUserId == null) return;
-        
+    private void loadUserProfile() { loadUserProfileWithCallback(null); }
+
+    private void loadUserProfileWithCallback(Runnable onDone) {
+        if (currentUserId == null) { if (onDone != null) onDone.run(); return; }
+
         userRepository.getUser(currentUserId).addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
                 User user = task.getResult().toObject(User.class);
@@ -168,6 +210,22 @@ public class ProfileFragment extends Fragment {
                     if (!name.isEmpty()) {
                         tvAvatarInit.setText(String.valueOf(name.charAt(0)).toUpperCase());
                     }
+
+                    // Load real avatar photo if exists
+                    String avatarUrl = user.getAvatarUrl();
+                    if (avatarUrl != null && !avatarUrl.isEmpty() && ivAvatarReal != null && isAdded()) {
+                        ivAvatarReal.setVisibility(View.VISIBLE);
+                        tvAvatarInit.setVisibility(View.GONE);
+                        Glide.with(this)
+                                .load(avatarUrl)
+                                .transform(new CircleCrop())
+                                .placeholder(R.drawable.bg_image_placeholder)
+                                .into(ivAvatarReal);
+                    } else if (ivAvatarReal != null) {
+                        ivAvatarReal.setVisibility(View.GONE);
+                        tvAvatarInit.setVisibility(View.VISIBLE);
+                    }
+
                     boolean isAdmin = "SYSTEM_ADMIN".equals(user.getRole());
                     if (btnAdminApprove != null) {
                         btnAdminApprove.setVisibility(isAdmin ? View.VISIBLE : View.GONE);
@@ -178,7 +236,76 @@ public class ProfileFragment extends Fragment {
                     updateOrderManagementVisibility(user);
                 }
             }
+            if (onDone != null) onDone.run();
         });
+    }
+
+    private void refreshAllData() {
+        // Track when all 3 async loads are done so we can stop the spinner together
+        AtomicInteger pendingLoads = new AtomicInteger(3);
+        Runnable onLoadDone = () -> {
+            if (pendingLoads.decrementAndGet() == 0) {
+                if (swipeRefreshProfile != null) {
+                    swipeRefreshProfile.post(() -> swipeRefreshProfile.setRefreshing(false));
+                }
+            }
+        };
+
+        loadUserProfileWithCallback(onLoadDone);
+        loadStatisticsWithCallback(onLoadDone);
+        loadFriendStatsWithCallback(onLoadDone);
+    }
+
+    private void uploadAvatarFromUri(Uri uri) {
+        if (currentUserId == null || !isAdded()) return;
+
+        // Show uploading indicator
+        if (avatarUploadProgress != null) avatarUploadProgress.setVisibility(View.VISIBLE);
+        if (avatarContainer != null) avatarContainer.setAlpha(0.6f);
+
+        StorageReference storageRef = FirebaseStorage.getInstance()
+                .getReference("avatars/" + currentUserId + ".jpg");
+
+        storageRef.putFile(uri)
+                .continueWithTask(task -> {
+                    if (!task.isSuccessful() && task.getException() != null) throw task.getException();
+                    return storageRef.getDownloadUrl();
+                })
+                .addOnSuccessListener(downloadUrl -> {
+                    if (!isAdded()) return;
+                    String url = downloadUrl.toString();
+
+                    // Update Firestore
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                            .collection("users")
+                            .document(currentUserId)
+                            .update("avatarUrl", url)
+                            .addOnSuccessListener(v -> {
+                                if (!isAdded()) return;
+                                // Show new avatar immediately
+                                if (ivAvatarReal != null) {
+                                    ivAvatarReal.setVisibility(View.VISIBLE);
+                                    tvAvatarInit.setVisibility(View.GONE);
+                                    Glide.with(this)
+                                            .load(url)
+                                            .transform(new CircleCrop())
+                                            .into(ivAvatarReal);
+                                }
+                                Toast.makeText(getContext(), "Đã cập nhật ảnh đại diện! 🎉", Toast.LENGTH_SHORT).show();
+                            })
+                            .addOnFailureListener(e ->
+                                    Toast.makeText(getContext(), "Lỗi lưu URL: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                            );
+
+                    if (avatarUploadProgress != null) avatarUploadProgress.setVisibility(View.GONE);
+                    if (avatarContainer != null) avatarContainer.setAlpha(1f);
+                })
+                .addOnFailureListener(e -> {
+                    if (!isAdded()) return;
+                    if (avatarUploadProgress != null) avatarUploadProgress.setVisibility(View.GONE);
+                    if (avatarContainer != null) avatarContainer.setAlpha(1f);
+                    Toast.makeText(getContext(), "Upload thất bại: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
 
     private void updateOrderManagementVisibility(User user) {
@@ -211,12 +338,20 @@ public class ProfileFragment extends Fragment {
         });
     }
 
-    private void loadFriendStats() {
-        if (currentUserId == null) return;
+    private void loadFriendStats() { loadFriendStatsWithCallback(null); }
+
+    private void loadFriendStatsWithCallback(Runnable onDone) {
+        if (currentUserId == null) { if (onDone != null) onDone.run(); return; }
 
         AtomicInteger friendsCount = new AtomicInteger(0);
         AtomicInteger pendingCount = new AtomicInteger(0);
         AtomicInteger queries = new AtomicInteger(2);
+        Runnable checkDone = () -> {
+            if (queries.decrementAndGet() == 0) {
+                updateFriendStatsUI(friendsCount.get(), pendingCount.get());
+                if (onDone != null) onDone.run();
+            }
+        };
 
         friendshipRepository.getFriendsByRequester(currentUserId).addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
@@ -225,7 +360,7 @@ public class ProfileFragment extends Fragment {
                     if ("ACCEPTED".equals(status)) friendsCount.incrementAndGet();
                 }
             }
-            if (queries.decrementAndGet() == 0) updateFriendStatsUI(friendsCount.get(), pendingCount.get());
+            checkDone.run();
         });
 
         friendshipRepository.getFriendsByReceiver(currentUserId).addOnCompleteListener(task -> {
@@ -236,14 +371,18 @@ public class ProfileFragment extends Fragment {
                     else if ("PENDING".equals(status)) pendingCount.incrementAndGet();
                 }
             }
-            if (queries.decrementAndGet() == 0) updateFriendStatsUI(friendsCount.get(), pendingCount.get());
+            checkDone.run();
         });
     }
 
     private void updateFriendStatsUI(int friendCount, int pendingCount) {
         if (!isAdded()) return;
         requireActivity().runOnUiThread(() -> {
-            tvFriendCount.setText(friendCount + " bạn bè");
+            animateCounter(tvFriendCount, friendCount);
+            // Show the "X bạn bè" suffix after the animation finishes
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                if (isAdded()) tvFriendCount.setText(friendCount + " bạn bè");
+            }, 820);
             if (pendingCount > 0) {
                 cardPendingBadge.setVisibility(View.VISIBLE);
                 tvPendingCount.setText(String.valueOf(pendingCount));
@@ -256,37 +395,54 @@ public class ProfileFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        loadUserProfile();
-        loadFriendStats();
-        loadStatistics();
+        refreshAllData();
     }
 
-    private void loadStatistics() {
-        if (currentUserId == null) return;
+    private void loadStatistics() { loadStatisticsWithCallback(null); }
+
+    private void loadStatisticsWithCallback(Runnable onDone) {
+        if (currentUserId == null) { if (onDone != null) onDone.run(); return; }
+
+        AtomicInteger pending = new AtomicInteger(3);
+        Runnable checkDone = () -> { if (pending.decrementAndGet() == 0 && onDone != null) onDone.run(); };
 
         // Count Explored Places
         interactionRepository.getExploredByUser(currentUserId)
                 .addSnapshotListener((value, error) -> {
-                    if (value != null) {
-                        tvExploredCount.setText(String.valueOf(value.size()));
-                    }
+                    if (value != null) animateCounter(tvExploredCount, value.size());
+                    checkDone.run();
                 });
 
         // Count Contributed Places
         placeRepository.getPlacesByUser(currentUserId)
                 .addSnapshotListener((value, error) -> {
-                    if (value != null) {
-                        tvContributedCount.setText(String.valueOf(value.size()));
-                    }
+                    if (value != null) animateCounter(tvContributedCount, value.size());
+                    checkDone.run();
                 });
 
         // Count Reviews
         reviewRepository.getReviewsByUser(currentUserId)
                 .addSnapshotListener((value, error) -> {
-                    if (value != null) {
-                        tvReviewCount.setText(String.valueOf(value.size()));
-                    }
+                    if (value != null) animateCounter(tvReviewCount, value.size());
+                    checkDone.run();
                 });
+    }
+
+    /**
+     * Animates a TextView's numeric text from 0 up to [target] over 800ms
+     * using a decelerate interpolator for a satisfying "counting up" feel.
+     */
+    private void animateCounter(TextView textView, int target) {
+        if (textView == null || !isAdded()) return;
+        new Handler(Looper.getMainLooper()).post(() -> {
+            ValueAnimator animator = ValueAnimator.ofInt(0, target);
+            animator.setDuration(800);
+            animator.setInterpolator(new DecelerateInterpolator(1.5f));
+            animator.addUpdateListener(anim -> {
+                if (isAdded()) textView.setText(String.valueOf(anim.getAnimatedValue()));
+            });
+            animator.start();
+        });
     }
 
     private void navigateToSignIn() {

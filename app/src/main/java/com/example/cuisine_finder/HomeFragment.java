@@ -18,6 +18,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.bumptech.glide.Glide;
 import com.example.cuisine_finder.activities.FoodPlaceDetailActivity;
@@ -85,6 +86,8 @@ public class HomeFragment extends Fragment {
     private StoryRepository storyRepository;
 
     private TextView btnRandomSuggestion;
+    private SwipeRefreshLayout swipeRefreshLayout;
+    private View mRootView;
 
     private static final int LOCATION_PERMISSION_REQUEST = 1002;
     //onCreate()
@@ -103,6 +106,13 @@ public class HomeFragment extends Fragment {
         //Tạo và trả về View (layout) cho Fragment
         //Được gọi sau onCreate() và trước onViewCreated()
         View view = inflater.inflate(R.layout.fragment_home, container, false);
+        mRootView = view;
+
+        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
+        if (swipeRefreshLayout != null) {
+            swipeRefreshLayout.setColorSchemeResources(R.color.orange_main);
+            swipeRefreshLayout.setOnRefreshListener(this::refreshAllData);
+        }
 
         authService = new AuthService();
         friendshipRepository = new FriendshipRepository();
@@ -146,6 +156,51 @@ public class HomeFragment extends Fragment {
             }
             return false;
         });
+
+        View chipFilterOpen = view.findViewById(R.id.chipFilterOpen);
+        View chipFilterNearby = view.findViewById(R.id.chipFilterNearby);
+        View chipFilterRating = view.findViewById(R.id.chipFilterRating);
+        View chipFilterBudget = view.findViewById(R.id.chipFilterBudget);
+
+        if (chipFilterOpen != null) {
+            chipFilterOpen.setOnClickListener(v -> {
+                getParentFragmentManager().beginTransaction()
+                        .replace(R.id.fragmentContainer, SearchResultFragment.newInstance("", "OPEN_NOW", ""))
+                        .addToBackStack(null)
+                        .commit();
+            });
+        }
+
+        if (chipFilterNearby != null) {
+            chipFilterNearby.setOnClickListener(v -> {
+                com.example.cuisine_finder.ExploreFragment.pendingNearMeFilter = true;
+                if (getActivity() != null) {
+                    com.google.android.material.bottomnavigation.BottomNavigationView bottomNav =
+                            getActivity().findViewById(R.id.bottomNavigation);
+                    if (bottomNav != null) {
+                        bottomNav.setSelectedItemId(R.id.nav_explore);
+                    }
+                }
+            });
+        }
+
+        if (chipFilterRating != null) {
+            chipFilterRating.setOnClickListener(v -> {
+                getParentFragmentManager().beginTransaction()
+                        .replace(R.id.fragmentContainer, SearchResultFragment.newInstance("", "MIN_RATING", "4.5"))
+                        .addToBackStack(null)
+                        .commit();
+            });
+        }
+
+        if (chipFilterBudget != null) {
+            chipFilterBudget.setOnClickListener(v -> {
+                getParentFragmentManager().beginTransaction()
+                        .replace(R.id.fragmentContainer, SearchResultFragment.newInstance("", "PRICE_RANGE", "CHEAP"))
+                        .addToBackStack(null)
+                        .commit();
+            });
+        }
 
         loadFriendsActivity();
         loadFoodCategories();
@@ -288,6 +343,9 @@ public class HomeFragment extends Fragment {
 
     private void loadFoodCategories() {
         categoryRepository.getAllCategories().addOnCompleteListener(task -> {
+            if (categoryAdapter != null) {
+                categoryAdapter.setLoading(false);
+            }
             if (task.isSuccessful() && task.getResult() != null) {
                 categoriesList.clear();
                 for (DocumentSnapshot doc : task.getResult().getDocuments()) {
@@ -296,13 +354,18 @@ public class HomeFragment extends Fragment {
                         categoriesList.add(cat);
                     }
                 }
-                categoryAdapter.notifyDataSetChanged();
+                if (categoryAdapter != null) {
+                    categoryAdapter.notifyDataSetChanged();
+                }
             }
         });
     }
 
-    private void loadFeaturedFoodItems() {
+    private void loadFeaturedFoodItems() { // averageRating
         foodItemRepository.getFeaturedFoodItems(FEATURED_MIN_RATING).addOnCompleteListener(task -> {
+            if (featuredFoodAdapter != null) {
+                featuredFoodAdapter.setLoading(false);
+            }
             if (task.isSuccessful() && task.getResult() != null) {
                 featuredFoodList.clear();
                 for (DocumentSnapshot doc : task.getResult().getDocuments()) {
@@ -311,7 +374,9 @@ public class HomeFragment extends Fragment {
                         featuredFoodList.add(foodItem);
                     }
                 }
-                featuredFoodAdapter.notifyDataSetChanged();
+                if (featuredFoodAdapter != null) {
+                    featuredFoodAdapter.notifyDataSetChanged();
+                }
             }
         });
     }
@@ -413,10 +478,13 @@ public class HomeFragment extends Fragment {
         });
     }
 
-    private void loadTrendingPlaces() {
+    private void loadTrendingPlaces() { // Xu hướng tuần này
         //Lấy dữ liệu từ Firestore
         placeRepository.getApprovedPlaces().get()
                 .addOnCompleteListener(task -> {
+                    if (trendingAdapter != null) {
+                        trendingAdapter.setLoading(false);
+                    }
                     if (task.isSuccessful() && task.getResult() != null) {
                         trendingList.clear();
                         //Chuyển documents thành objects
@@ -435,7 +503,9 @@ public class HomeFragment extends Fragment {
                         for (int i = 0; i < Math.min(10, tempPlaces.size()); i++) {
                             trendingList.add(tempPlaces.get(i));
                         }
-                        trendingAdapter.notifyDataSetChanged();
+                        if (trendingAdapter != null) {
+                            trendingAdapter.notifyDataSetChanged();
+                        }
                     } else {
                         android.util.Log.e("HomeFragment", "Error loading trending places: ", task.getException());
                     }
@@ -456,18 +526,65 @@ public class HomeFragment extends Fragment {
     }
 
 
-    private void checkLocationAndLoadNearby() {
-        //Kiểm tra Fragment còn tồn tại không
+    private void refreshAllData() {
         if (!isAdded()) return;
-        //Kiểm tra quyền GPS
-        if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.ACCESS_FINE_LOCATION)// quyền GPS chính xác
-                != android.content.pm.PackageManager.PERMISSION_GRANTED) {// nếu CHƯA được cấp quyền
-            //Xin quyền nếu chưa có
-            requestPermissions(new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
-                    LOCATION_PERMISSION_REQUEST);// mã để nhận kết quả sau khi user chọn
-            return;
+
+        if (categoryAdapter != null) categoryAdapter.setLoading(true);
+        if (featuredFoodAdapter != null) featuredFoodAdapter.setLoading(true);
+        if (trendingAdapter != null) trendingAdapter.setLoading(true);
+
+        loadFriendsActivity();
+        loadFoodCategories();
+        loadFeaturedFoodItems();
+        loadTrendingPlaces();
+        loadUserWelcomeName();
+        loadStories();
+        checkLocationAndLoadNearby();
+
+        if (swipeRefreshLayout != null) {
+            swipeRefreshLayout.postDelayed(() -> {
+                if (isAdded() && swipeRefreshLayout.isRefreshing()) {
+                    swipeRefreshLayout.setRefreshing(false);
+                }
+            }, 1200);
         }
-        retrieveLocationAndLoad();// lấy tọa độ → load quán gần đây
+    }
+
+    private void applyPulseAnimation(View view) {
+        if (view == null) return;
+        android.view.animation.AlphaAnimation pulse = new android.view.animation.AlphaAnimation(0.5f, 1.0f);
+        pulse.setDuration(800);
+        pulse.setRepeatMode(android.view.animation.Animation.REVERSE);
+        pulse.setRepeatCount(android.view.animation.Animation.INFINITE);
+        view.startAnimation(pulse);
+    }
+
+
+    private void checkLocationAndLoadNearby() {
+        if (!isAdded()) return;
+
+        View rootView = mRootView != null ? mRootView : getView();
+        View banner = rootView != null ? rootView.findViewById(R.id.cardLocationPermissionBanner) : null;
+        View btnGrant = rootView != null ? rootView.findViewById(R.id.btnGrantLocation) : null;
+
+        if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.ACCESS_FINE_LOCATION)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            if (banner != null) {
+                banner.setVisibility(View.GONE);
+            }
+            retrieveLocationAndLoad();
+        } else {
+            if (banner != null) {
+                banner.setVisibility(View.VISIBLE);
+                if (btnGrant != null) {
+                    btnGrant.setOnClickListener(v -> {
+                        requestPermissions(new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                                LOCATION_PERMISSION_REQUEST);
+                    });
+                }
+            }
+            loadFallbackNearbyRestaurant();
+        }
     }
 
     private void retrieveLocationAndLoad() { //lấy vị trí GPS và load quán gần đây
@@ -509,10 +626,10 @@ public class HomeFragment extends Fragment {
                 // Đăng ký nhận 1 lần vị trí từ GPS hoặc mạng
                 if (lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER)) {
                     lm.requestSingleUpdate(android.location.LocationManager.GPS_PROVIDER, listener,
-                            requireActivity().getMainLooper());
+                             requireActivity().getMainLooper());
                 } else if (lm.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER)) {
                     lm.requestSingleUpdate(android.location.LocationManager.NETWORK_PROVIDER, listener,
-                            requireActivity().getMainLooper());
+                             requireActivity().getMainLooper());
                 }
             }
         } catch (SecurityException e) {
@@ -523,9 +640,17 @@ public class HomeFragment extends Fragment {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == LOCATION_PERMISSION_REQUEST) {
+            View rootView = mRootView != null ? mRootView : getView();
+            View banner = rootView != null ? rootView.findViewById(R.id.cardLocationPermissionBanner) : null;
             if (grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                if (banner != null) {
+                    banner.setVisibility(View.GONE);
+                }
                 retrieveLocationAndLoad();
             } else {
+                if (banner != null) {
+                    banner.setVisibility(View.VISIBLE);
+                }
                 loadFallbackNearbyRestaurant();
             }
         }
@@ -628,22 +753,20 @@ public class HomeFragment extends Fragment {
 
     private void startRandomSuggestion() {
         btnRandomSuggestion.setEnabled(false);
-        btnRandomSuggestion.setText("🎲  Đang chọn...");
+        btnRandomSuggestion.setText("🎲  Đang kết nối...");
 
         placeRepository.getCachedApprovedPlaces(new PlaceRepository.OnPlacesLoadedCallback() {
             @Override
             public void onLoaded(List<FoodPlace> places) {
                 if (!isAdded()) return;
                 requireActivity().runOnUiThread(() -> {
-                    btnRandomSuggestion.setEnabled(true);
-                    btnRandomSuggestion.setText("🎲  Không biết ăn gì? Để tôi chọn!");
                     if (places.isEmpty()) {
+                        btnRandomSuggestion.setEnabled(true);
+                        btnRandomSuggestion.setText("✨  Không biết ăn gì? Thử vận may!  ✨");
                         Toast.makeText(getContext(), "Chưa có dữ liệu quán ăn", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    List<FoodPlace> shuffled = new ArrayList<>(places);
-                    Collections.shuffle(shuffled);
-                    showSuggestionDialog(shuffled, 0);
+                    startRollingEffect(places);
                 });
             }
 
@@ -652,11 +775,41 @@ public class HomeFragment extends Fragment {
                 if (!isAdded()) return;
                 requireActivity().runOnUiThread(() -> {
                     btnRandomSuggestion.setEnabled(true);
-                    btnRandomSuggestion.setText("🎲  Không biết ăn gì? Để tôi chọn!");
+                    btnRandomSuggestion.setText("✨  Không biết ăn gì? Thử vận may!  ✨");
                     Toast.makeText(getContext(), "Lỗi kết nối, thử lại sau", Toast.LENGTH_SHORT).show();
                 });
             }
         });
+    }
+
+    private void startRollingEffect(List<FoodPlace> places) {
+        final int rollCount = 15;
+        final long rollInterval = 100;
+        final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+        final int[] count = {0};
+        final java.util.Random random = new java.util.Random();
+
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                if (!isAdded()) return;
+
+                if (count[0] < rollCount) {
+                    FoodPlace randomPlace = places.get(random.nextInt(places.size()));
+                    btnRandomSuggestion.setText("🎰  " + randomPlace.getName() + "...");
+                    count[0]++;
+                    handler.postDelayed(this, rollInterval);
+                } else {
+                    btnRandomSuggestion.setEnabled(true);
+                    btnRandomSuggestion.setText("✨  Không biết ăn gì? Thử vận may!  ✨");
+
+                    List<FoodPlace> shuffled = new ArrayList<>(places);
+                    Collections.shuffle(shuffled);
+                    showSuggestionDialog(shuffled, 0);
+                }
+            }
+        };
+        handler.post(runnable);
     }
 
     private void showSuggestionDialog(List<FoodPlace> shuffled, int tryIndex) {
@@ -816,9 +969,15 @@ public class HomeFragment extends Fragment {
 
     private class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHolder> {
         private List<FoodCategory> items;
+        private boolean isLoading = true;
 
         public CategoryAdapter(List<FoodCategory> items) {
             this.items = items;
+        }
+
+        public void setLoading(boolean loading) {
+            this.isLoading = loading;
+            notifyDataSetChanged();
         }
 
         @NonNull
@@ -828,43 +987,69 @@ public class HomeFragment extends Fragment {
             return new ViewHolder(v);
         }
 
+        private String getEmojiForCategory(String name) {
+            if (name == null) return "🍲";
+            String lower = name.toLowerCase(java.util.Locale.getDefault());
+            if (lower.contains("coffee") || lower.contains("cà phê") || lower.contains("cafe")) return "☕";
+            if (lower.contains("phở") || lower.contains("bún") || lower.contains("hủ tiếu")) return "🍜";
+            if (lower.contains("cơm tấm")) return "🍛";
+            if (lower.contains("cơm")) return "🍚";
+            if (lower.contains("lẩu")) return "🫕";
+            if (lower.contains("ốc") || lower.contains("hải sản")) return "🦪";
+            if (lower.contains("bánh") || lower.contains("bake")) return "🥐";
+            if (lower.contains("nướng") || lower.contains("bbq") || lower.contains("grills")) return "🍖";
+            if (lower.contains("kem") || lower.contains("ice cream")) return "🍦";
+            if (lower.contains("trà sữa") || lower.contains("milk tea") || lower.contains("bubble")) return "🧋";
+            if (lower.contains("trà") || lower.contains("tea")) return "🍵";
+            if (lower.contains("pizza")) return "🍕";
+            if (lower.contains("burger") || lower.contains("hamburger")) return "🍔";
+            if (lower.contains("sushi") || lower.contains("nhật")) return "🍣";
+            if (lower.contains("chè")) return "🍧";
+            if (lower.contains("gà") || lower.contains("chicken")) return "🍗";
+            if (lower.contains("chay") || lower.contains("vegetarian")) return "🥗";
+            if (lower.contains("xôi")) return "🍙";
+            if (lower.contains("cháo") || lower.contains("mì")) return "🥣";
+            if (lower.contains("vặt")) return "🍢";
+            return "🍲";
+        }
+
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            if (isLoading) {
+                holder.tvName.setText("          ");
+                holder.tvName.setBackgroundResource(R.drawable.bg_badge_soft);
+                holder.ivIcon.setVisibility(View.GONE);
+                holder.tvEmoji.setVisibility(View.VISIBLE);
+                holder.tvEmoji.setText("⚪");
+                applyPulseAnimation(holder.itemView);
+                holder.itemView.setOnClickListener(null);
+                return;
+            }
+
+            holder.itemView.clearAnimation();
+            holder.tvName.setBackground(null);
+
             FoodCategory cat = items.get(position);
             holder.tvName.setText(cat.getName());
 
-            if (cat.getIconUrl() != null && !cat.getIconUrl().trim().isEmpty()) {
-                holder.ivIcon.setVisibility(View.VISIBLE);
-                holder.tvEmoji.setVisibility(View.GONE);
-                Glide.with(holder.itemView.getContext())
-                        .load(cat.getIconUrl())
-                        .centerCrop()
-                        .into(holder.ivIcon);
-            } else {
-                holder.ivIcon.setVisibility(View.GONE);
-                holder.tvEmoji.setVisibility(View.VISIBLE);
-                String emoji = "🍲";
-                String name = cat.getName().toLowerCase();
-                if (name.contains("coffee") || name.contains("cà phê")) emoji = "☕";
-                else if (name.contains("bún")) emoji = "🍜";
-                else if (name.contains("cơm")) emoji = "🍚";
-                else if (name.contains("lẩu")) emoji = "🍲";
-                else if (name.contains("ốc")) emoji = "🐚";
-                holder.tvEmoji.setText(emoji);
-            }
+            // Always use clean system emoji to avoid AI-generated icons
+            holder.ivIcon.setVisibility(View.GONE);
+            holder.tvEmoji.setVisibility(View.VISIBLE);
+            holder.tvEmoji.setText(getEmojiForCategory(cat.getName()));
 
             holder.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(requireContext(), PlacesByCategoryActivity.class);
                 intent.putExtra(PlacesByCategoryActivity.EXTRA_CATEGORY_NAME, cat.getName());
                 intent.putExtra(PlacesByCategoryActivity.EXTRA_CATEGORY_DESCRIPTION, cat.getDescription());
-                intent.putExtra(PlacesByCategoryActivity.EXTRA_CATEGORY_ICON_URL, cat.getIconUrl());
+                // Pass empty string to avoid displaying AI hero icons on detail page
+                intent.putExtra(PlacesByCategoryActivity.EXTRA_CATEGORY_ICON_URL, "");
                 startActivity(intent);
             });
         }
 
         @Override
         public int getItemCount() {
-            return items.size();
+            return isLoading ? 6 : items.size();
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
@@ -881,9 +1066,15 @@ public class HomeFragment extends Fragment {
 
     private class FeaturedFoodAdapter extends RecyclerView.Adapter<FeaturedFoodAdapter.ViewHolder> {
         private final List<FoodItem> items;
+        private boolean isLoading = true;
 
         FeaturedFoodAdapter(List<FoodItem> items) {
             this.items = items;
+        }
+
+        public void setLoading(boolean loading) {
+            this.isLoading = loading;
+            notifyDataSetChanged();
         }
 
         @NonNull
@@ -895,6 +1086,22 @@ public class HomeFragment extends Fragment {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            if (isLoading) {
+                holder.tvFeaturedFoodName.setText("                    ");
+                holder.tvFeaturedFoodName.setBackgroundResource(R.drawable.bg_badge_soft);
+                holder.tvFeaturedTag.setText("      ");
+                holder.tvFeaturedTag.setBackgroundResource(R.drawable.bg_badge_soft);
+                holder.tvFeaturedFoodRating.setText("★ --");
+                holder.ivFeaturedFood.setImageResource(R.drawable.bg_image_placeholder);
+                applyPulseAnimation(holder.itemView);
+                holder.itemView.setOnClickListener(null);
+                return;
+            }
+
+            holder.itemView.clearAnimation();
+            holder.tvFeaturedFoodName.setBackground(null);
+            holder.tvFeaturedTag.setBackgroundResource(R.drawable.bg_tag_orange); // restore original background
+
             FoodItem foodItem = items.get(position);
             String foodName = foodItem.getName() != null ? foodItem.getName() : "Món nổi bật";
             String featuredTag = foodItem.getCategoryName() != null && !foodItem.getCategoryName().trim().isEmpty()
@@ -928,7 +1135,7 @@ public class HomeFragment extends Fragment {
 
         @Override
         public int getItemCount() {
-            return items.size();
+            return isLoading ? 3 : items.size();
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
@@ -949,9 +1156,15 @@ public class HomeFragment extends Fragment {
 
     private class TrendingPlaceAdapter extends RecyclerView.Adapter<TrendingPlaceAdapter.ViewHolder> {
         private final List<FoodPlace> items;
+        private boolean isLoading = true;
 
         TrendingPlaceAdapter(List<FoodPlace> items) {
             this.items = items;
+        }
+
+        public void setLoading(boolean loading) {
+            this.isLoading = loading;
+            notifyDataSetChanged();
         }
 
         @NonNull
@@ -963,6 +1176,21 @@ public class HomeFragment extends Fragment {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            if (isLoading) {
+                holder.tvName.setText("                    ");
+                holder.tvName.setBackgroundResource(R.drawable.bg_badge_soft);
+                holder.tvStats.setText("                             ");
+                holder.tvStats.setBackgroundResource(R.drawable.bg_badge_soft);
+                holder.ivImage.setImageResource(R.drawable.bg_image_placeholder);
+                applyPulseAnimation(holder.itemView);
+                holder.itemView.setOnClickListener(null);
+                return;
+            }
+
+            holder.itemView.clearAnimation();
+            holder.tvName.setBackground(null);
+            holder.tvStats.setBackground(null);
+
             FoodPlace place = items.get(position);
             holder.tvName.setText(place.getName());
             holder.tvStats.setText(String.format(Locale.getDefault(), "❤ %d  ·  ✍ %d reviews", place.getFavoriteCount(), place.getReviewCount()));
@@ -982,7 +1210,7 @@ public class HomeFragment extends Fragment {
 
         @Override
         public int getItemCount() {
-            return items.size();
+            return isLoading ? 3 : items.size();
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {

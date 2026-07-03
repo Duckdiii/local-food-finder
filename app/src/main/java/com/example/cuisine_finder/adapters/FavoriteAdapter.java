@@ -16,6 +16,7 @@ import java.util.List;
 public class FavoriteAdapter extends RecyclerView.Adapter<FavoriteAdapter.FavoriteViewHolder> {
 
     private List<Favorite> favorites = new ArrayList<>();
+    private boolean isLoading = true;
 
     public interface OnItemClickListener {
         void onItemClick(Favorite favorite);
@@ -36,7 +37,13 @@ public class FavoriteAdapter extends RecyclerView.Adapter<FavoriteAdapter.Favori
         this.removeListener = listener;
     }
 
+    public void setLoading(boolean loading) {
+        this.isLoading = loading;
+        notifyDataSetChanged();
+    }
+
     public void setFavorites(List<Favorite> favorites) {
+        this.isLoading = false;
         this.favorites = new ArrayList<>(favorites);
         notifyDataSetChanged();
     }
@@ -64,13 +71,17 @@ public class FavoriteAdapter extends RecyclerView.Adapter<FavoriteAdapter.Favori
 
     @Override
     public void onBindViewHolder(@NonNull FavoriteViewHolder holder, int position) {
-        Favorite favorite = favorites.get(position);
-        holder.bind(favorite, clickListener, removeListener);
+        if (isLoading) {
+            holder.bindPlaceholder();
+        } else {
+            Favorite favorite = favorites.get(position);
+            holder.bind(favorite, clickListener, removeListener);
+        }
     }
 
     @Override
     public int getItemCount() {
-        return favorites.size();
+        return isLoading ? 3 : favorites.size();
     }
 
     static class FavoriteViewHolder extends RecyclerView.ViewHolder {
@@ -89,6 +100,13 @@ public class FavoriteAdapter extends RecyclerView.Adapter<FavoriteAdapter.Favori
         }
 
         void bind(Favorite favorite, OnItemClickListener clickListener, OnRemoveListener removeListener) {
+            itemView.clearAnimation();
+            tvName.setBackground(null);
+            tvAddress.setBackground(null);
+            tvSavedTime.setBackground(null);
+            if (tvRating != null) tvRating.setVisibility(View.VISIBLE);
+            btnRemove.setVisibility(View.VISIBLE);
+
             tvName.setText(favorite.getPlaceName() != null ? favorite.getPlaceName() : "Quán ăn");
 
             // Rating (Favorite model doesn't store rating — show placeholder)
@@ -135,6 +153,42 @@ public class FavoriteAdapter extends RecyclerView.Adapter<FavoriteAdapter.Favori
             btnRemove.setOnClickListener(v -> {
                 if (removeListener != null) removeListener.onRemove(favorite);
             });
+        }
+
+        void bindPlaceholder() {
+            itemView.clearAnimation();
+            tvName.setText("                    ");
+            tvName.setBackgroundResource(R.drawable.bg_badge_soft);
+
+            if (tvRating != null) {
+                tvRating.setVisibility(View.GONE);
+            }
+
+            tvFoodType.setVisibility(View.GONE);
+
+            tvAddress.setText("                                          ");
+            tvAddress.setBackgroundResource(R.drawable.bg_badge_soft);
+            tvAddress.setVisibility(View.VISIBLE);
+
+            tvSavedTime.setText("            ");
+            tvSavedTime.setBackgroundResource(R.drawable.bg_badge_soft);
+
+            btnRemove.setVisibility(View.GONE);
+            ivImage.setImageResource(R.drawable.bg_image_placeholder);
+
+            itemView.setOnClickListener(null);
+            btnRemove.setOnClickListener(null);
+
+            applyPulseAnimation(itemView);
+        }
+
+        private void applyPulseAnimation(View view) {
+            if (view == null) return;
+            android.view.animation.AlphaAnimation pulse = new android.view.animation.AlphaAnimation(0.5f, 1.0f);
+            pulse.setDuration(800);
+            pulse.setRepeatMode(android.view.animation.Animation.REVERSE);
+            pulse.setRepeatCount(android.view.animation.Animation.INFINITE);
+            view.startAnimation(pulse);
         }
 
         private String getRelativeTime(long createdAt) {

@@ -15,6 +15,9 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import com.google.android.material.snackbar.Snackbar;
 import com.example.cuisine_finder.activities.ExploredPlacesActivity;
 import com.example.cuisine_finder.activities.FoodPlaceDetailActivity;
 import com.example.cuisine_finder.adapters.FavoriteAdapter;
@@ -30,6 +33,7 @@ public class SavedFragment extends Fragment {
 
     private enum TabFilter { ALL, RECENT, ALPHA, NIGHT }
 
+    private SwipeRefreshLayout swipeRefreshLayout;
     private RecyclerView rvSavedPlaces;
     private LinearLayout layoutEmptyState;
     private TextView tvSavedCount;
@@ -42,6 +46,7 @@ public class SavedFragment extends Fragment {
 
     private final List<Favorite> allFavorites = new ArrayList<>();
     private TabFilter currentTab = TabFilter.ALL;
+    private boolean isFirstLoadCompleted = false;
 
     @Nullable
     @Override
@@ -61,6 +66,31 @@ public class SavedFragment extends Fragment {
     }
 
     private void initViews(View view) {
+        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
+        if (swipeRefreshLayout != null) {
+            swipeRefreshLayout.setColorSchemeColors(
+                    ContextCompat.getColor(requireContext(), R.color.orange_main)
+            );
+            swipeRefreshLayout.setOnRefreshListener(() -> {
+                if (adapter != null) adapter.setLoading(true);
+                isFirstLoadCompleted = false;
+                loadFavorites();
+            });
+        }
+
+        View btnSavedMap = view.findViewById(R.id.btnSavedMap);
+        if (btnSavedMap != null) {
+            btnSavedMap.setOnClickListener(v -> {
+                if (allFavorites != null && !allFavorites.isEmpty()) {
+                    FavoritesMapDialog dialog = new FavoritesMapDialog();
+                    dialog.setFavorites(allFavorites);
+                    dialog.show(getParentFragmentManager(), "FavoritesMapDialog");
+                } else {
+                    Toast.makeText(getContext(), "Chưa có quán yêu thích nào để hiển thị bản đồ", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
         rvSavedPlaces = view.findViewById(R.id.rvSavedPlaces);
         layoutEmptyState = view.findViewById(R.id.layoutEmptyState);
         tvSavedCount = view.findViewById(R.id.tvSavedCount);
@@ -88,19 +118,90 @@ public class SavedFragment extends Fragment {
 
         adapter.setOnRemoveListener(favorite -> {
             if (currentUserId == null) return;
-            adapter.removeItem(favorite);
-            allFavorites.remove(favorite);
-            updateCountDisplay();
-            interactionRepository.removeFavorite(currentUserId, favorite.getPlaceId())
-                    .addOnSuccessListener(v ->
-                            Toast.makeText(getContext(), "Đã bỏ khỏi yêu thích", Toast.LENGTH_SHORT).show()
-                    )
-                    .addOnFailureListener(e -> {
-                        allFavorites.add(0, favorite);
-                        applyTab();
-                        Toast.makeText(getContext(), "Có lỗi xảy ra", Toast.LENGTH_SHORT).show();
-                    });
+            int pos = adapter.getFavorites().indexOf(favorite);
+            if (pos != -1) {
+                removeFavoriteWithUndo(favorite, pos);
+            }
         });
+
+        ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                int position = viewHolder.getBindingAdapterPosition();
+                if (position == RecyclerView.NO_POSITION) return;
+
+                if (adapter != null && adapter.getFavorites() != null && position < adapter.getFavorites().size()) {
+                    Favorite favorite = adapter.getFavorites().get(position);
+                    removeFavoriteWithUndo(favorite, position);
+                }
+            }
+
+            @Override
+            public void onChildDraw(@NonNull android.graphics.Canvas c, @NonNull RecyclerView recyclerView,
+                                    @NonNull RecyclerView.ViewHolder viewHolder, float dX, float dY,
+                                    int actionState, boolean isCurrentlyActive) {
+                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                    View itemView = viewHolder.itemView;
+                    android.graphics.Paint paint = new android.graphics.Paint();
+                    paint.setColor(android.graphics.Color.parseColor("#FFE5E5")); // Soft light red
+
+                    if (dX > 0) { // Swiping right
+                        c.drawRect((float) itemView.getLeft(), (float) itemView.getTop(),
+                                dX, (float) itemView.getBottom(), paint);
+                    } else { // Swiping left
+                        c.drawRect((float) itemView.getRight() + dX, (float) itemView.getTop(),
+                                (float) itemView.getRight(), (float) itemView.getBottom(), paint);
+                    }
+                }
+                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
+            }
+        };
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallback);
+        itemTouchHelper.attachToRecyclerView(rvSavedPlaces);
+    }
+
+    private void removeFavoriteWithUndo(Favorite favorite, int position) {
+        if (currentUserId == null) return;
+
+        // Remove locally and notify adapter
+        adapter.removeItem(favorite);
+        allFavorites.remove(favorite);
+        updateCountDisplay();
+
+        // Show Snackbar with Undo option
+        Snackbar snackbar = Snackbar.make(requireView(), "Đã bỏ lưu " + (favorite.getPlaceName() != null ? favorite.getPlaceName() : "quán ăn"), Snackbar.LENGTH_LONG);
+        snackbar.setAction("Hoàn tác ↩", v -> {
+            // Restore item
+            allFavorites.add(favorite);
+            applyTab();
+            int newPos = adapter.getFavorites().indexOf(favorite);
+            if (newPos != -1) {
+                rvSavedPlaces.scrollToPosition(newPos);
+            }
+        });
+        snackbar.setActionTextColor(ContextCompat.getColor(requireContext(), R.color.orange_main));
+        snackbar.addCallback(new Snackbar.Callback() {
+            @Override
+            public void onDismissed(Snackbar transientBottomBar, int event) {
+                if (event != Snackbar.Callback.DISMISS_EVENT_ACTION) {
+                    // Commit removal to Firestore if not undone
+                    interactionRepository.removeFavorite(currentUserId, favorite.getPlaceId())
+                            .addOnFailureListener(e -> {
+                                if (isAdded()) {
+                                    Toast.makeText(getContext(), "Lỗi bỏ lưu: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                    allFavorites.add(favorite);
+                                    applyTab();
+                                }
+                            });
+                }
+            }
+        });
+        snackbar.show();
     }
 
     private void setupTabs() {
@@ -178,6 +279,10 @@ public class SavedFragment extends Fragment {
         interactionRepository.getFavoritesByUser(currentUserId)
                 .addSnapshotListener((value, error) -> {
                     if (!isAdded()) return;
+                    isFirstLoadCompleted = true;
+                    if (swipeRefreshLayout != null) {
+                        swipeRefreshLayout.setRefreshing(false);
+                    }
                     if (value != null) {
                         allFavorites.clear();
                         allFavorites.addAll(value.toObjects(Favorite.class));
@@ -187,6 +292,10 @@ public class SavedFragment extends Fragment {
     }
 
     private void updateCountDisplay() {
+        if (!isFirstLoadCompleted) {
+            hideEmptyState();
+            return;
+        }
         int count = allFavorites.size();
         if (tvStatSavedNum != null) tvStatSavedNum.setText(String.valueOf(count));
         if (count == 0) {
@@ -199,6 +308,10 @@ public class SavedFragment extends Fragment {
     }
 
     private void updateEmptyAndCount(int visibleCount) {
+        if (!isFirstLoadCompleted) {
+            hideEmptyState();
+            return;
+        }
         int totalCount = allFavorites.size();
         if (tvStatSavedNum != null) tvStatSavedNum.setText(String.valueOf(totalCount));
         if (totalCount == 0) {

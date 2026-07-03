@@ -38,9 +38,15 @@ public class CommunityPostAdapter extends RecyclerView.Adapter<CommunityPostAdap
     private final Set<String> expandedPostIds = new HashSet<>();
     private final OnPostActionListener listener;
     private String currentUserId;
+    private boolean isLoading = true;
 
     public CommunityPostAdapter(OnPostActionListener listener) {
         this.listener = listener;
+    }
+
+    public void setLoading(boolean loading) {
+        this.isLoading = loading;
+        notifyDataSetChanged();
     }
 
     public void setCurrentUserId(String currentUserId) {
@@ -49,6 +55,7 @@ public class CommunityPostAdapter extends RecyclerView.Adapter<CommunityPostAdap
     }
 
     public void setPosts(List<CommunityPost> newPosts) {
+        this.isLoading = false;
         posts.clear();
         if (newPosts != null) {
             posts.addAll(newPosts);
@@ -77,12 +84,16 @@ public class CommunityPostAdapter extends RecyclerView.Adapter<CommunityPostAdap
 
     @Override
     public void onBindViewHolder(@NonNull PostViewHolder holder, int position) {
-        holder.bind(posts.get(position));
+        if (isLoading) {
+            holder.bindPlaceholder();
+        } else {
+            holder.bind(posts.get(position));
+        }
     }
 
     @Override
     public int getItemCount() {
-        return posts.size();
+        return isLoading ? 3 : posts.size();
     }
 
     class PostViewHolder extends RecyclerView.ViewHolder {
@@ -136,6 +147,11 @@ public class CommunityPostAdapter extends RecyclerView.Adapter<CommunityPostAdap
         }
 
         void bind(CommunityPost post) {
+            itemView.clearAnimation();
+            tvAuthorName.setBackground(null);
+            tvPostTime.setBackground(null);
+            tvCaption.setBackground(null);
+
             Context context = itemView.getContext();
             String authorName = safeText(post.getAuthorName(), "Người dùng");
             tvAuthorAvatar.setText(authorName.substring(0, 1).toUpperCase(Locale.getDefault()));
@@ -152,6 +168,94 @@ public class CommunityPostAdapter extends RecyclerView.Adapter<CommunityPostAdap
             bindTags(context, post.getTags());
             bindMiniCard(context, post);
             bindActions(context, post);
+        }
+
+        void bindPlaceholder() {
+            Context context = itemView.getContext();
+            tvAuthorAvatar.setText("⚪");
+            tvAuthorName.setText("                    ");
+            tvAuthorName.setBackgroundResource(R.drawable.bg_badge_soft);
+            tvPostTime.setText("        ");
+            tvPostTime.setBackgroundResource(R.drawable.bg_badge_soft);
+            tvDistanceBadge.setVisibility(View.GONE);
+
+            tvCaption.setText("                                                                                                    ");
+            tvCaption.setBackgroundResource(R.drawable.bg_badge_soft);
+            tvReadMore.setVisibility(View.GONE);
+
+            layoutImageContainer.setVisibility(View.VISIBLE);
+            ivPostImage.setImageResource(R.drawable.bg_image_placeholder);
+            layoutPlaceOverlay.setVisibility(View.GONE);
+            layoutTags.setVisibility(View.GONE);
+            layoutMiniCard.setVisibility(View.GONE);
+
+            tvLikeCount.setText("--");
+            tvCommentCount.setText("--");
+
+            applyPulseAnimation(itemView);
+
+            // Disable clicks
+            itemView.setOnClickListener(null);
+            btnLike.setOnClickListener(null);
+            btnComment.setOnClickListener(null);
+            btnShare.setOnClickListener(null);
+            btnMore.setOnClickListener(null);
+        }
+
+        private void applyPulseAnimation(View view) {
+            if (view == null) return;
+            android.view.animation.AlphaAnimation pulse = new android.view.animation.AlphaAnimation(0.5f, 1.0f);
+            pulse.setDuration(800);
+            pulse.setRepeatMode(android.view.animation.Animation.REVERSE);
+            pulse.setRepeatCount(android.view.animation.Animation.INFINITE);
+            view.startAnimation(pulse);
+        }
+
+        private void showHeartAnimation() {
+            Context context = itemView.getContext();
+            ImageView heart = new ImageView(context);
+
+            float dp = context.getResources().getDisplayMetrics().density;
+            int size = (int) (80 * dp);
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(size, size);
+            params.gravity = Gravity.CENTER;
+            heart.setLayoutParams(params);
+
+            android.graphics.Bitmap heartBitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas canvas = new android.graphics.Canvas(heartBitmap);
+            android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+            paint.setTextSize(size * 0.7f);
+            paint.setTextAlign(android.graphics.Paint.Align.CENTER);
+            android.graphics.Paint.FontMetrics fm = paint.getFontMetrics();
+            float yOffset = (fm.descent + fm.ascent) / 2;
+            canvas.drawText("❤️", size / 2f, size / 2f - yOffset, paint);
+            heart.setImageBitmap(heartBitmap);
+
+            layoutImageContainer.addView(heart);
+
+            heart.setScaleX(0f);
+            heart.setScaleY(0f);
+            heart.setAlpha(0f);
+
+            heart.animate()
+                    .scaleX(1.2f)
+                    .scaleY(1.2f)
+                    .alpha(1f)
+                    .setDuration(250)
+                    .setInterpolator(new android.view.animation.OvershootInterpolator())
+                    .withEndAction(() -> {
+                        heart.animate()
+                                .translationY(-50 * dp)
+                                .alpha(0f)
+                                .scaleX(0.8f)
+                                .scaleY(0.8f)
+                                .setDuration(400)
+                                .withEndAction(() -> {
+                                    layoutImageContainer.removeView(heart);
+                                })
+                                .start();
+                    })
+                    .start();
         }
 
         private void bindCaption(CommunityPost post) {
@@ -203,9 +307,35 @@ public class CommunityPostAdapter extends RecyclerView.Adapter<CommunityPostAdap
 
             layoutPlaceOverlay.setVisibility(existingPlace ? View.VISIBLE : View.GONE);
             tvPlaceNameOverlay.setText(safeText(post.getPlaceName(), "Xem bản đồ"));
-            layoutImageContainer.setOnClickListener(
-                    existingPlace ? v -> listener.onPlaceClicked(post) : null
-            );
+            final long[] lastClickTime = {0};
+            final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+            final Runnable[] singleClickRunnable = {null};
+
+            layoutImageContainer.setOnClickListener(v -> {
+                long clickTime = System.currentTimeMillis();
+                if (clickTime - lastClickTime[0] < 300) {
+                    if (singleClickRunnable[0] != null) {
+                        handler.removeCallbacks(singleClickRunnable[0]);
+                        singleClickRunnable[0] = null;
+                    }
+                    showHeartAnimation();
+                    if (currentUserId != null && !post.isLikedBy(currentUserId)) {
+                        listener.onLikeClicked(post);
+                    }
+                } else {
+                    if (singleClickRunnable[0] != null) {
+                        handler.removeCallbacks(singleClickRunnable[0]);
+                    }
+                    singleClickRunnable[0] = () -> {
+                        if (existingPlace) {
+                            listener.onPlaceClicked(post);
+                        }
+                        singleClickRunnable[0] = null;
+                    };
+                    handler.postDelayed(singleClickRunnable[0], 250);
+                }
+                lastClickTime[0] = clickTime;
+            });
         }
 
         private void bindTags(Context context, List<String> tags) {
