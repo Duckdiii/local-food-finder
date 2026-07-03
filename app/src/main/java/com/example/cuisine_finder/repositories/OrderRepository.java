@@ -86,20 +86,6 @@ public class OrderRepository {
                 .get();
     }
 
-    public Task<QuerySnapshot> getAvailableShippingOrders() {
-        return ordersRef
-                .whereEqualTo("status", OrderStatus.READY_FOR_PICKUP)
-                .orderBy("updatedAt", Query.Direction.ASCENDING)
-                .get();
-    }
-
-    public Task<QuerySnapshot> getAssignedShipperOrders(String shipperId) {
-        return ordersRef
-                .whereEqualTo("shipperId", shipperId)
-                .orderBy("updatedAt", Query.Direction.DESCENDING)
-                .get();
-    }
-
     public Task<Void> updateStatus(String orderId, User actor, String nextStatus, String note) {
         if (orderId == null || orderId.isEmpty()) {
             return Tasks.forException(new IllegalArgumentException("Order id is required"));
@@ -130,10 +116,7 @@ public class OrderRepository {
             updates.put("statusHistory", FieldValue.arrayUnion(
                     new OrderStatusHistoryEntry(nextStatus, actor.getId(), actor.getRole(), note)
             ));
-
-            if (OrderStatus.SHIPPER_ACCEPTED.equals(nextStatus)) {
-                updates.put("shipperId", actor.getId());
-            }
+            updates.put("shipperId", FieldValue.delete());
             if (OrderStatus.MERCHANT_ACCEPTED.equals(nextStatus)) {
                 updates.put("merchantId", actor.getId());
             }

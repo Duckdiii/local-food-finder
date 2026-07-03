@@ -7,6 +7,8 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.cuisine_finder.R;
 import com.example.cuisine_finder.models.CartItem;
@@ -48,7 +50,7 @@ public class CheckoutActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_checkout);
         InsetUtils.applySystemBars(findViewById(R.id.rootCheckout), true, true);
-        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
+        findViewById(R.id.btnBack).setOnClickListener(v -> handleBack());
 
         restaurantId = getIntent().getStringExtra(EXTRA_RESTAURANT_ID);
         restaurantName = getIntent().getStringExtra(EXTRA_RESTAURANT_NAME);
@@ -58,6 +60,21 @@ public class CheckoutActivity extends AppCompatActivity {
         bindSummary();
         loadSavedCustomerInfo();
         btnConfirmOrder.setOnClickListener(v -> submitOrder());
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                handleBack();
+            }
+        });
+    }
+
+    private void handleBack() {
+        if (submitting) {
+            Toast.makeText(this, "Dang xu ly don hang, vui long doi giay lat", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        finish();
     }
 
     private void initViews() {
@@ -115,8 +132,20 @@ public class CheckoutActivity extends AppCompatActivity {
             etCustomerPhone.setError("Bắt buộc");
             return;
         }
+        if (!phone.matches("\\d{10,11}")) {
+            etCustomerPhone.setError("So dien thoai phai co 10-11 chu so");
+            return;
+        }
         if (address.isEmpty()) {
             etDeliveryAddress.setError("Bắt buộc");
+            return;
+        }
+        if (address.length() < 10) {
+            etDeliveryAddress.setError("Dia chi qua ngan");
+            return;
+        }
+        if (rgPaymentMethod.getCheckedRadioButtonId() == -1) {
+            Toast.makeText(this, "Vui long chon phuong thuc thanh toan", Toast.LENGTH_SHORT).show();
             return;
         }
         if (restaurantId == null || restaurantId.isEmpty() || cartItems.isEmpty()) {
@@ -124,6 +153,15 @@ public class CheckoutActivity extends AppCompatActivity {
             return;
         }
 
+        new AlertDialog.Builder(this)
+                .setTitle("Xac nhan dat hang")
+                .setMessage("Ban co chac chan muon dat don hang nay?")
+                .setPositiveButton("Dat ngay", (dialog, which) -> performSubmit(customerId, phone, address, note))
+                .setNegativeButton("Xem lai", null)
+                .show();
+    }
+
+    private void performSubmit(String customerId, String phone, String address, String note) {
         Order order = buildOrder(customerId, phone, address, note);
         submitting = true;
         btnConfirmOrder.setEnabled(false);
@@ -135,6 +173,8 @@ public class CheckoutActivity extends AppCompatActivity {
                             .update("phone", phone, "address", address);
 
                     Toast.makeText(this, "Đặt hàng thành công", Toast.LENGTH_SHORT).show();
+                    // Clear cart after successful order
+                    com.example.cuisine_finder.utils.CartManager.getInstance(this).clearCart();
                     Intent intent = new Intent(this, ActiveOrderActivity.class);
                     intent.putExtra(ActiveOrderActivity.EXTRA_ORDER_ID, documentReference.getId());
                     startActivity(intent);
@@ -188,7 +228,8 @@ public class CheckoutActivity extends AppCompatActivity {
                 item.setPrice(object.optDouble("price"));
                 item.setQuantity(object.optInt("quantity"));
                 item.setImageUrl(object.optString("imageUrl", null));
-                if (item.getFoodItemId() != null && !item.getFoodItemId().isEmpty() && item.getQuantity() > 0) {
+                if (item.getFoodItemId() != null && !item.getFoodItemId().isEmpty() 
+                        && item.getQuantity() > 0 && item.getPrice() > 0) {
                     cartItems.add(item);
                 }
             }

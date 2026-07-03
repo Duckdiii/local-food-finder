@@ -14,12 +14,13 @@
         android:id="@+id/btnBack"
         android:layout_width="44dp"
         android:layout_height="44dp"
-        android:background="@drawable/bg_icon_soft"
+        android:background="@drawable/bg_community_input_soft"
+        android:contentDescription="Quay lai"
+        android:elevation="2dp"
         android:gravity="center"
-        android:text="&lt;"
-        android:textColor="@color/text_dark"
-        android:textSize="22sp"
-        android:textStyle="bold" />
+        android:text="&#x2039;"
+        android:textColor="@color/orange_main"
+        android:textSize="30sp" />
 
     <TextView
         android:id="@+id/tvOrdersTitle"
@@ -40,13 +41,44 @@
         android:textColor="@color/text_gray"
         android:textSize="14sp" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvAdminOrders"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="20dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingBottom="24dp" />
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvAdminOrders"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="20dp"
+            android:clipToPadding="false"
+            android:paddingBottom="24dp" />
+
+        <!-- Empty State -->
+        <LinearLayout
+            android:id="@+id/layoutAdminOrdersEmpty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📝"
+                android:textSize="48sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Chưa có đơn hàng nào"
+                android:textColor="@color/text_dark"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </FrameLayout>
 
 </LinearLayout>

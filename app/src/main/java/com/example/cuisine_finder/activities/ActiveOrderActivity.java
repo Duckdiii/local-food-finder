@@ -122,10 +122,10 @@ public class ActiveOrderActivity extends AppCompatActivity {
         if (OrderStatus.PENDING_MERCHANT_CONFIRMATION.equals(status)) return "Cho quan nhan don";
         if (OrderStatus.MERCHANT_ACCEPTED.equals(status)) return "Quan da nhan don";
         if (OrderStatus.PREPARING.equals(status)) return "Quan dang lam mon";
-        if (OrderStatus.READY_FOR_PICKUP.equals(status)) return "Mon da san sang";
-        if (OrderStatus.SHIPPER_ACCEPTED.equals(status)) return "Shipper da nhan don";
-        if (OrderStatus.PICKED_UP.equals(status)) return "Shipper da lay mon";
-        if (OrderStatus.SHIPPING.equals(status)) return "Dang giao hang";
+        if (OrderStatus.READY_FOR_PICKUP.equals(status)) return "Quan san sang giao";
+        if (OrderStatus.SHIPPER_ACCEPTED.equals(status)) return "Quan da nhan giao";
+        if (OrderStatus.PICKED_UP.equals(status)) return "Quan dang dua don di giao";
+        if (OrderStatus.SHIPPING.equals(status)) return "Quan dang giao hang";
         if (OrderStatus.DELIVERED.equals(status)) return "Giao hang thanh cong";
         if (OrderStatus.DELIVERY_FAILED.equals(status)) return "Giao hang that bai";
         if (OrderStatus.CANCELLED_BY_CUSTOMER.equals(status)) return "Don da huy";
@@ -137,6 +137,6 @@ public class ActiveOrderActivity extends AppCompatActivity {
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("vi", "VN"));
         symbols.setGroupingSeparator('.');
         DecimalFormat df = new DecimalFormat("#,###", symbols);
-        return df.format((long) price) + "d";
+        return df.format(price) + "đ";
     }
 }

@@ -14,18 +14,18 @@ public class PermissionService {
         String role = user.getRole();
         if (UserRole.SYSTEM_ADMIN.equals(role)) return true;
 
-        if (UserRole.isCustomer(role)) {
-            return user.getId().equals(order.getCustomerId());
+        // Cho phép xem nếu là đơn hàng của mình
+        if (user.getId().equals(order.getCustomerId())) {
+            return true;
         }
 
+        // Cho phép Merchant xem nếu quản lý nhà hàng đó
         if (UserRole.isMerchant(role)) {
             return managesRestaurant(user, order.getRestaurantId());
         }
 
-        if (UserRole.isShipper(role)) {
-            return OrderStatus.READY_FOR_PICKUP.equals(order.getStatus())
-                    || user.getId().equals(order.getShipperId());
-        }
+        // Cho phép Shipper xem nếu đơn được giao cho họ (giả sử có trường shipperId)
+        // if (UserRole.isShipper(role) && user.getId().equals(order.getShipperId())) return true;
 
         return false;
     }
@@ -54,27 +54,12 @@ public class PermissionService {
         if (OrderStatus.PREPARING.equals(currentStatus)) {
             return OrderStatus.READY_FOR_PICKUP.equals(nextStatus);
         }
-        return false;
-    }
-
-    public boolean canShipperUpdateStatus(User user, Order order, String nextStatus) {
-        if (user == null || order == null || !UserRole.isShipper(user.getRole())) return false;
-
-        String currentStatus = order.getStatus();
-        String shipperId = user.getId();
-        if (shipperId == null) return false;
-
         if (OrderStatus.READY_FOR_PICKUP.equals(currentStatus)) {
-            return OrderStatus.SHIPPER_ACCEPTED.equals(nextStatus)
-                    && (order.getShipperId() == null || order.getShipperId().isEmpty());
+            return OrderStatus.DELIVERY_ASSIGNED.equals(nextStatus);
         }
-
-        if (!shipperId.equals(order.getShipperId())) return false;
-
-        if (OrderStatus.SHIPPER_ACCEPTED.equals(currentStatus)) {
-            return OrderStatus.PICKED_UP.equals(nextStatus);
-        }
-        if (OrderStatus.PICKED_UP.equals(currentStatus)) {
+        if (OrderStatus.DELIVERY_ASSIGNED.equals(currentStatus)
+                || OrderStatus.SHIPPER_ACCEPTED.equals(currentStatus)
+                || OrderStatus.PICKED_UP.equals(currentStatus)) {
             return OrderStatus.SHIPPING.equals(nextStatus);
         }
         if (OrderStatus.SHIPPING.equals(currentStatus)) {
@@ -86,7 +71,6 @@ public class PermissionService {
 
     public boolean canUpdateStatus(User user, Order order, String nextStatus) {
         return canMerchantUpdateStatus(user, order, nextStatus)
-                || canShipperUpdateStatus(user, order, nextStatus)
                 || (OrderStatus.CANCELLED_BY_CUSTOMER.equals(nextStatus) && canCustomerCancelOrder(user, order));
     }
 

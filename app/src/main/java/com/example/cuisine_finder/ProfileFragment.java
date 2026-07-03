@@ -126,6 +126,9 @@ public class ProfileFragment extends Fragment {
 
         btnSignOut.setOnClickListener(v -> {
             authService.signOut();
+            if (getActivity() instanceof com.example.cuisine_finder.activities.MainActivity) {
+                ((com.example.cuisine_finder.activities.MainActivity) getActivity()).updateBottomNavVisibility();
+            }
             navigateToSignIn();
         });
 
@@ -180,17 +183,18 @@ public class ProfileFragment extends Fragment {
 
     private void updateOrderManagementVisibility(User user) {
         if (btnCustomerOrders == null || btnOrderManagement == null || separatorAdmin == null) return;
-        boolean isCustomer = user == null || UserRole.isCustomer(user.getRole());
+        
+        // Luôn hiện nút "Đơn hàng của tôi" cho mọi role
+        btnCustomerOrders.setVisibility(View.VISIBLE);
+        if (separatorCustomerOrders != null) {
+            separatorCustomerOrders.setVisibility(View.VISIBLE);
+        }
+
         boolean isMerchant = user != null && UserRole.isMerchant(user.getRole());
         boolean isShipper = user != null && UserRole.isShipper(user.getRole());
         boolean merchantHasRestaurants = isMerchant
                 && user.getManagedRestaurantIds() != null
                 && !user.getManagedRestaurantIds().isEmpty();
-
-        btnCustomerOrders.setVisibility(isCustomer ? View.VISIBLE : View.GONE);
-        if (separatorCustomerOrders != null) {
-            separatorCustomerOrders.setVisibility(isCustomer ? View.VISIBLE : View.GONE);
-        }
 
         boolean showOrderEntry = merchantHasRestaurants || isShipper;
         btnOrderManagement.setVisibility(showOrderEntry ? View.VISIBLE : View.GONE);

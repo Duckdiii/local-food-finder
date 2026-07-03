@@ -10,6 +10,13 @@ public class CartItem {
     public CartItem() {
     }
 
+    public CartItem(String foodItemId, String name, double price, int quantity) {
+        this.foodItemId = foodItemId;
+        this.name = name;
+        this.price = price;
+        this.quantity = quantity;
+    }
+
     public CartItem(FoodItem foodItem) {
         this.foodItemId = foodItem.getId();
         this.name = foodItem.getName();
@@ -37,5 +44,9 @@ public class CartItem {
 
     public double getSubtotal() {
         return price * quantity;
+    }
+
+    public double getTotalPrice() {
+        return getSubtotal();
     }
 }

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/rootOrders"
@@ -25,14 +25,15 @@
 
             <TextView
                 android:id="@+id/btnBack"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="@drawable/bg_icon_soft"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_community_input_soft"
+                android:contentDescription="Quay lai"
+                android:elevation="2dp"
                 android:gravity="center"
-                android:text="&lt;"
-                android:textColor="@color/white"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                android:text="&#x2039;"
+                android:textColor="@color/orange_main"
+                android:textSize="30sp" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -45,7 +46,7 @@
                     android:id="@+id/tvOrdersTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Đơn hàng của tôi"
+                    android:text="&#x0110;&#x01A1;n h&#x00E0;ng c&#x1EE7;a t&#x00F4;i"
                     android:textColor="@color/white"
                     android:textSize="22sp"
                     android:textStyle="bold" />
@@ -55,7 +56,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:text="Theo dõi trạng thái các đơn đã đặt."
+                    android:text="Theo d&#x00F5;i tr&#x1EA1;ng th&#x00E1;i c&#x00E1;c &#x0111;&#x01A1;n &#x0111;&#x00E3; &#x0111;&#x1EB7;t."
                     android:textColor="#EFFFFFFF"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -81,14 +82,30 @@
         </LinearLayout>
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvAdminOrders"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="20dp"
-        android:layout_marginEnd="24dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingBottom="24dp" />
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvAdminOrders"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginEnd="24dp"
+            android:clipToPadding="false"
+            android:paddingBottom="24dp" />
+
+        <TextView
+            android:id="@+id/tvEmptyOrders"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:text="Ch&#x01B0;a c&#x00F3; &#x0111;&#x01A1;n h&#x00E0;ng n&#x00E0;o"
+            android:textColor="@color/text_gray"
+            android:textSize="15sp"
+            android:visibility="gone" />
+    </FrameLayout>
 </LinearLayout>

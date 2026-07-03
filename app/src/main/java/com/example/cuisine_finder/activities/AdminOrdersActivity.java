@@ -1,5 +1,7 @@
 package com.example.cuisine_finder.activities;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
@@ -13,7 +15,6 @@ import com.example.cuisine_finder.adapters.OrderItemAdapter;
 import com.example.cuisine_finder.models.Order;
 import com.example.cuisine_finder.models.OrderStatus;
 import com.example.cuisine_finder.models.User;
-import com.example.cuisine_finder.models.UserRole;
 import com.example.cuisine_finder.repositories.OrderRepository;
 import com.example.cuisine_finder.repositories.UserRepository;
 import com.example.cuisine_finder.services.PermissionService;
@@ -51,7 +52,7 @@ public class AdminOrdersActivity extends AppCompatActivity {
         TextView tvOrdersTitle = findViewById(R.id.tvOrdersTitle);
         TextView tvOrdersSubtitle = findViewById(R.id.tvOrdersSubtitle);
         tvOrdersTitle.setText("Đơn hàng nhà hàng");
-        tvOrdersSubtitle.setText("Nhận đơn, chế biến và chuyển sang trạng thái sẵn sàng giao.");
+        tvOrdersSubtitle.setText("Nhận đơn, chế biến và tự giao cho khách.");
 
         RecyclerView rvOrders = findViewById(R.id.rvAdminOrders);
         adminOrderAdapter = new AdminOrderAdapter(this::showOrderDetailDialog);
@@ -72,7 +73,7 @@ public class AdminOrdersActivity extends AppCompatActivity {
     private void loadCurrentUserAndOrders() {
         String userId = FirebaseAuth.getInstance().getUid();
         if (userId == null) {
-            Toast.makeText(this, "Vui long dang nhap", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Vui lòng đăng nhập", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -80,20 +81,20 @@ public class AdminOrdersActivity extends AppCompatActivity {
         userRepository.getUser(userId).addOnSuccessListener(snapshot -> {
             currentUser = snapshot.toObject(User.class);
             if (currentUser == null) {
-                Toast.makeText(this, "Khong tim thay nguoi dung", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Không tìm thấy người dùng", Toast.LENGTH_SHORT).show();
                 finish();
                 return;
             }
             currentUser.setId(snapshot.getId());
             ensureDemoMerchantRestaurant(currentUser);
             if (!permissionService.canAccessMerchantDashboard(currentUser)) {
-                Toast.makeText(this, "Chi chu quan moi duoc xem man nay", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Chỉ chủ quán mới được xem màn này", Toast.LENGTH_SHORT).show();
                 finish();
                 return;
             }
             observeMerchantOrders(currentUser);
         }).addOnFailureListener(e -> {
-            Toast.makeText(this, "Khong tai duoc thong tin nguoi dung", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Không tải được thông tin người dùng", Toast.LENGTH_SHORT).show();
             finish();
         });
     }
@@ -114,7 +115,7 @@ public class AdminOrdersActivity extends AppCompatActivity {
 
     private void observeMerchantOrders(User user) {
         if (user.getManagedRestaurantIds() == null || user.getManagedRestaurantIds().isEmpty()) {
-            Toast.makeText(this, "Tai khoan chua gan quan an", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Tài khoản chưa gắn quán ăn", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -156,12 +157,27 @@ public class AdminOrdersActivity extends AppCompatActivity {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.dialog_admin_order_detail, null);
         TextView tvUser = view.findViewById(R.id.tvAdminDetailUser);
+        View layoutRecipientInfo = view.findViewById(R.id.layoutRecipientInfo);
+        TextView tvRecipientName = view.findViewById(R.id.tvRecipientName);
+        TextView tvRecipientPhone = view.findViewById(R.id.tvRecipientPhone);
+        TextView tvRecipientAddress = view.findViewById(R.id.tvRecipientAddress);
+        TextView tvRecipientNote = view.findViewById(R.id.tvRecipientNote);
+        TextView btnCallRecipient = view.findViewById(R.id.btnCallRecipient);
         TextView btnPreparing = view.findViewById(R.id.btnStatusPreparing);
         TextView btnDelivering = view.findViewById(R.id.btnStatusDelivering);
         TextView btnCompleted = view.findViewById(R.id.btnStatusCompleted);
         RecyclerView rvItems = view.findViewById(R.id.rvAdminDetailItems);
 
-        tvUser.setText("Khach: " + (order.getCustomerPhone() != null ? order.getCustomerPhone() : order.getCustomerId()));
+        bindDeliveryRecipientInfo(
+                order,
+                tvUser,
+                layoutRecipientInfo,
+                tvRecipientName,
+                tvRecipientPhone,
+                tvRecipientAddress,
+                tvRecipientNote,
+                btnCallRecipient
+        );
         OrderItemAdapter adapter = new OrderItemAdapter();
         rvItems.setLayoutManager(new LinearLayoutManager(this));
         rvItems.setAdapter(adapter);
@@ -170,6 +186,51 @@ public class AdminOrdersActivity extends AppCompatActivity {
         bindMerchantActions(order, dialog, btnPreparing, btnDelivering, btnCompleted);
         dialog.setContentView(view);
         dialog.show();
+    }
+
+    private void bindDeliveryRecipientInfo(
+            Order order,
+            TextView tvUser,
+            View layoutRecipientInfo,
+            TextView tvRecipientName,
+            TextView tvRecipientPhone,
+            TextView tvRecipientAddress,
+            TextView tvRecipientNote,
+            TextView btnCallRecipient
+    ) {
+        if (!isMerchantDeliveryInProgress(order.getStatus())) {
+            layoutRecipientInfo.setVisibility(View.GONE);
+            btnCallRecipient.setVisibility(View.GONE);
+            tvUser.setText("Khách: " + valueOrFallback(order.getCustomerPhone(), order.getCustomerId()));
+            return;
+        }
+
+        String name = valueOrFallback(order.getCustomerName(), "Khách hàng");
+        String phone = valueOrFallback(order.getCustomerPhone(), "Chưa có số điện thoại");
+        String address = valueOrFallback(order.getDeliveryAddress(), "Chưa có địa chỉ giao hàng");
+        String note = valueOrFallback(order.getDeliveryNote(), "Không có ghi chú");
+        boolean hasPhone = order.getCustomerPhone() != null && !order.getCustomerPhone().trim().isEmpty();
+
+        layoutRecipientInfo.setVisibility(View.VISIBLE);
+        tvUser.setText("Đang giao đến: " + address);
+        tvRecipientName.setText("Người nhận: " + name);
+        tvRecipientPhone.setText("Số điện thoại: " + phone);
+        tvRecipientAddress.setText("Địa chỉ: " + address);
+        tvRecipientNote.setText("Ghi chú: " + note);
+        btnCallRecipient.setVisibility(hasPhone ? View.VISIBLE : View.GONE);
+        btnCallRecipient.setOnClickListener(v -> {
+            if (!hasPhone) return;
+            Intent intent = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + order.getCustomerPhone().trim()));
+            startActivity(intent);
+        });
+    }
+
+    private boolean isMerchantDeliveryInProgress(String status) {
+        return OrderStatus.isDeliveringOrLater(status);
+    }
+
+    private String valueOrFallback(String value, String fallback) {
+        return value != null && !value.trim().isEmpty() ? value.trim() : fallback;
     }
 
     private void bindMerchantActions(
@@ -184,16 +245,31 @@ public class AdminOrdersActivity extends AppCompatActivity {
         btnCompleted.setVisibility(View.GONE);
 
         if (OrderStatus.PENDING_MERCHANT_CONFIRMATION.equals(order.getStatus())) {
-            showAction(btnPreparing, "Nhan don", () -> updateStatus(order, OrderStatus.MERCHANT_ACCEPTED, "Merchant accepted order", dialog));
-            showAction(btnDelivering, "Tu choi", () -> updateStatus(order, OrderStatus.REJECTED_BY_MERCHANT, "Merchant rejected order", dialog));
+            showAction(btnPreparing, "Nhận đơn", () -> updateStatus(order, OrderStatus.MERCHANT_ACCEPTED, "Merchant accepted order", dialog));
+            showAction(btnDelivering, "Từ chối", () -> updateStatus(order, OrderStatus.REJECTED_BY_MERCHANT, "Merchant rejected order", dialog));
             return;
         }
         if (OrderStatus.MERCHANT_ACCEPTED.equals(order.getStatus())) {
-            showAction(btnPreparing, "Che bien", () -> updateStatus(order, OrderStatus.PREPARING, "Merchant started preparing", dialog));
+            showAction(btnPreparing, "Chế biến", () -> updateStatus(order, OrderStatus.PREPARING, "Merchant started preparing", dialog));
             return;
         }
         if (OrderStatus.PREPARING.equals(order.getStatus())) {
-            showAction(btnCompleted, "San sang giao", () -> updateStatus(order, OrderStatus.READY_FOR_PICKUP, "Order ready for pickup", dialog));
+            showAction(btnCompleted, "Sẵn sàng giao", () -> updateStatus(order, OrderStatus.READY_FOR_PICKUP, "Order ready for delivery", dialog));
+            return;
+        }
+        if (OrderStatus.READY_FOR_PICKUP.equals(order.getStatus())) {
+            showAction(btnPreparing, "Nhận giao", () -> updateStatus(order, OrderStatus.DELIVERY_ASSIGNED, "Merchant accepted delivery", dialog));
+            return;
+        }
+        if (OrderStatus.DELIVERY_ASSIGNED.equals(order.getStatus())
+                || OrderStatus.SHIPPER_ACCEPTED.equals(order.getStatus())
+                || OrderStatus.PICKED_UP.equals(order.getStatus())) {
+            showAction(btnDelivering, "Đang giao", () -> updateStatus(order, OrderStatus.SHIPPING, "Merchant started delivery", dialog));
+            return;
+        }
+        if (OrderStatus.SHIPPING.equals(order.getStatus())) {
+            showAction(btnCompleted, "Giao thành công", () -> updateStatus(order, OrderStatus.DELIVERED, "Delivered", dialog));
+            showAction(btnDelivering, "Thất bại", () -> updateStatus(order, OrderStatus.DELIVERY_FAILED, "Delivery failed", dialog));
         }
     }
 
@@ -207,11 +283,11 @@ public class AdminOrdersActivity extends AppCompatActivity {
         if (currentUser == null) return;
         orderRepository.updateStatus(order.getId(), currentUser, nextStatus, note)
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Da cap nhat don", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Đã cập nhật đơn", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Khong cap nhat duoc: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Không cập nhật được: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
 }

@@ -62,6 +62,9 @@ public class SignInFragment extends Fragment {
         authService.signIn(email, password).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 Toast.makeText(getContext(), "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
+                if (getActivity() instanceof com.example.cuisine_finder.activities.MainActivity) {
+                    ((com.example.cuisine_finder.activities.MainActivity) getActivity()).updateBottomNavVisibility();
+                }
                 if (authService.getCurrentUser() != null) {
                     navigateToHome(authService.getCurrentUser().getUid());
                 } else {

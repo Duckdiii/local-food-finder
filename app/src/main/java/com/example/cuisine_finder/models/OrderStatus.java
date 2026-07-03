@@ -8,6 +8,8 @@ public final class OrderStatus {
     public static final String MERCHANT_ACCEPTED = "MERCHANT_ACCEPTED";
     public static final String PREPARING = "PREPARING";
     public static final String READY_FOR_PICKUP = "READY_FOR_PICKUP";
+    public static final String DELIVERY_ASSIGNED = "DELIVERY_ASSIGNED";
+    // Legacy statuses from the old shipper flow. Kept to display and advance existing orders.
     public static final String SHIPPER_ACCEPTED = "SHIPPER_ACCEPTED";
     public static final String PICKED_UP = "PICKED_UP";
     public static final String SHIPPING = "SHIPPING";
@@ -21,6 +23,7 @@ public final class OrderStatus {
             MERCHANT_ACCEPTED,
             PREPARING,
             READY_FOR_PICKUP,
+            DELIVERY_ASSIGNED,
             SHIPPER_ACCEPTED,
             PICKED_UP,
             SHIPPING
@@ -31,6 +34,21 @@ public final class OrderStatus {
 
     public static boolean isActive(String status) {
         return ACTIVE_STATUSES.contains(status);
+    }
+
+    public static boolean isDeliveryAssigned(String status) {
+        return DELIVERY_ASSIGNED.equals(status) || SHIPPER_ACCEPTED.equals(status);
+    }
+
+    public static boolean isShippingInProgress(String status) {
+        return SHIPPING.equals(status) || PICKED_UP.equals(status);
+    }
+
+    public static boolean isDeliveringOrLater(String status) {
+        return isDeliveryAssigned(status)
+                || isShippingInProgress(status)
+                || DELIVERED.equals(status)
+                || DELIVERY_FAILED.equals(status);
     }
 
     public static boolean isTerminal(String status) {
