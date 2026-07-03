@@ -23,6 +23,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
 import com.example.cuisine_finder.R;
 import com.example.cuisine_finder.adapters.CartAdapter;
 import com.example.cuisine_finder.adapters.MenuAdapter;
@@ -59,6 +60,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
     private TextView btnFavorite, btnShare, btnCall, btnOrder, btnExplored, btnWriteReview;
     private RecyclerView rvReviews;
     private RecyclerView rvMenu;
+    private android.widget.ProgressBar progressBarMenu;
     private LinearLayout layoutMenuTab, layoutReviewsTab, layoutMenuEmpty;
     private com.google.android.material.card.MaterialCardView tabMenu, tabReviews;
     private com.google.android.material.card.MaterialCardView layoutViewCart;
@@ -140,6 +142,19 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
             
             return insets;
         });
+
+        // Keep the persistent cart bar above the system navigation bar in edge-to-edge mode
+        if (layoutViewCart.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+            int baseBottomMargin = ((ViewGroup.MarginLayoutParams) layoutViewCart.getLayoutParams()).bottomMargin;
+            ViewCompat.setOnApplyWindowInsetsListener(layoutViewCart, (v, insets) -> {
+                int navBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+                ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+                lp.bottomMargin = baseBottomMargin + navBarHeight;
+                v.setLayoutParams(lp);
+                return insets;
+            });
+            ViewCompat.requestApplyInsets(layoutViewCart);
+        }
     }
 
     private void setupImagePicker() {
@@ -219,6 +234,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         layoutViewCart = findViewById(R.id.layoutViewCart);
         tvCartCount = findViewById(R.id.tvCartCount);
         tvCartTotal = findViewById(R.id.tvCartTotal);
+        progressBarMenu = findViewById(R.id.progressBarMenu);
     }
 
     private void setupRecyclerViews() {//   Thiết lập RecyclerView cho danh sách đánh giá và thực đơn, bao gồm việc tạo adapter, thiết lập layout manager và gán adapter cho RecyclerView.
@@ -227,7 +243,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         rvReviews.setAdapter(reviewAdapter);
 
         menuAdapter = new MenuAdapter();
-        menuAdapter.setOnAddToCartClickListener(this::addToCart);
+        menuAdapter.setOnAddToCartClickListener(this::onMenuItemAddClicked);
         rvMenu.setLayoutManager(new LinearLayoutManager(this));
         rvMenu.setAdapter(menuAdapter);
     }
@@ -256,7 +272,11 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
     }
 
     private void loadMenu(String placeId) {
+        progressBarMenu.setVisibility(View.VISIBLE);
+        layoutMenuEmpty.setVisibility(View.GONE);
+        rvMenu.setVisibility(View.GONE);
         foodItemRepository.getMenuByPlaceId(placeId).addOnSuccessListener(querySnapshot -> {
+            progressBarMenu.setVisibility(View.GONE);
             if (querySnapshot == null || querySnapshot.isEmpty()) {
                 layoutMenuEmpty.setVisibility(View.VISIBLE);
                 rvMenu.setVisibility(View.GONE);
@@ -276,6 +296,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
             layoutMenuEmpty.setVisibility(View.GONE);
             rvMenu.setVisibility(View.VISIBLE);
         }).addOnFailureListener(e -> {
+            progressBarMenu.setVisibility(View.GONE);
             layoutMenuEmpty.setVisibility(View.VISIBLE);
             rvMenu.setVisibility(View.GONE);
         });
@@ -352,7 +373,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         tvCloseTime.setText("Đóng cửa: " + closeTime);
         
         // Kiểm tra trạng thái thực tế dựa trên giờ mở/đóng cửa
-        boolean isOpen = isCurrentlyOpen(place);
+        boolean isOpen = place.isCurrentlyOpen();
         if (!"APPROVED".equals(place.getStatus())) {
             tvStatus.setText("Tạm đóng");
             tvStatus.setTextColor(getResources().getColor(R.color.red_close));
@@ -365,30 +386,6 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
             tvStatus.setText("Tạm đóng");
             tvStatus.setTextColor(getResources().getColor(R.color.red_close));
             tvStatus.setBackgroundResource(R.drawable.bg_chip_red);
-        }
-    }
-
-    private boolean isCurrentlyOpen(FoodPlace place) {
-        if (place == null) return true;
-        String openTime = place.getOpenTime();
-        String closeTime = place.getCloseTime();
-        if (openTime == null || openTime.trim().isEmpty()) {
-            openTime = "07:00";
-        }
-        if (closeTime == null || closeTime.trim().isEmpty()) {
-            closeTime = "22:00";
-        }
-        try {
-            java.util.Calendar now = java.util.Calendar.getInstance();
-            int current = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE);
-            String[] o = openTime.split(":");
-            String[] c = closeTime.split(":");
-            int open = Integer.parseInt(o[0]) * 60 + Integer.parseInt(o[1]);
-            int close = Integer.parseInt(c[0]) * 60 + Integer.parseInt(c[1]);
-            if (open <= close) return current >= open && current <= close;
-            return current >= open || current <= close; // crosses midnight
-        } catch (Exception e) {
-            return true;
         }
     }
 
@@ -450,12 +447,80 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         updateCartBar();
     }
 
-    private void addToCart(FoodItem foodItem) {
+    private void onMenuItemAddClicked(FoodItem foodItem) {
+        if (currentPlace != null && !currentPlace.isOpenForOrders()) {
+            Toast.makeText(this, "Quán hiện đang đóng cửa, không thể đặt món", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        showAddToCartDialog(foodItem);
+    }
+
+    private void showAddToCartDialog(FoodItem foodItem) {
+        if (foodItem == null) return;
+
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.dialog_add_to_cart, null);
+
+        ImageView ivImage = view.findViewById(R.id.ivDialogItemImage);
+        TextView tvName = view.findViewById(R.id.tvDialogItemName);
+        TextView tvPrice = view.findViewById(R.id.tvDialogItemPrice);
+        TextView tvQuantity = view.findViewById(R.id.tvDialogQuantity);
+        TextView btnDecrease = view.findViewById(R.id.btnDialogDecrease);
+        TextView btnIncrease = view.findViewById(R.id.btnDialogIncrease);
+        EditText etNote = view.findViewById(R.id.etDialogNote);
+        TextView btnAdd = view.findViewById(R.id.btnDialogAddToCart);
+
+        tvName.setText(foodItem.getName() != null ? foodItem.getName() : "Món ăn");
+        tvPrice.setText(formatPrice(foodItem.getPrice()));
+
+        String imageUrl = (foodItem.getImageUrls() != null && !foodItem.getImageUrls().isEmpty())
+                ? foodItem.getImageUrls().get(0) : null;
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            Glide.with(ivImage.getContext())
+                    .load(imageUrl)
+                    .centerCrop()
+                    .placeholder(R.drawable.bg_image_placeholder)
+                    .into(ivImage);
+        } else {
+            ivImage.setImageResource(R.drawable.bg_image_placeholder);
+        }
+
+        final int[] quantity = {1};
+        Runnable updateAddButton = () -> {
+            tvQuantity.setText(String.valueOf(quantity[0]));
+            btnAdd.setText("Thêm vào giỏ hàng · " + formatPrice(foodItem.getPrice() * quantity[0]));
+        };
+        updateAddButton.run();
+
+        btnDecrease.setOnClickListener(v -> {
+            if (quantity[0] > 1) {
+                quantity[0]--;
+                updateAddButton.run();
+            }
+        });
+        btnIncrease.setOnClickListener(v -> {
+            if (quantity[0] < 99) {
+                quantity[0]++;
+                updateAddButton.run();
+            }
+        });
+
+        btnAdd.setOnClickListener(v -> {
+            String note = etNote.getText().toString().trim();
+            addToCart(foodItem, quantity[0], note.isEmpty() ? null : note);
+            dialog.dismiss();
+        });
+
+        dialog.setContentView(view);
+        dialog.show();
+    }
+
+    private void addToCart(FoodItem foodItem, int quantity, String note) {
         if (foodItem == null || foodItem.getId() == null || currentPlace == null) return;
-        
-        CartItem item = new CartItem(foodItem);
+
+        CartItem item = new CartItem(foodItem, quantity, note);
         boolean added = cartManager.addItem(currentPlace.getId(), currentPlace.getName(), item);
-        
+
         if (!added) {
             // Check if it's due to the one-restaurant rule
             String existingRid = cartManager.getCurrentRestaurantId();
@@ -592,6 +657,10 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Thong tin quan chua tai xong", Toast.LENGTH_SHORT).show();
             return;
         }
+        if (!currentPlace.isOpenForOrders()) {
+            Toast.makeText(this, "Quán hiện đang đóng cửa, không thể đặt hàng lúc này", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         Intent intent = new Intent(this, CheckoutActivity.class);
         intent.putExtra(CheckoutActivity.EXTRA_RESTAURANT_ID, currentPlace.getId());
@@ -610,6 +679,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
                 object.put("price", item.getPrice());
                 object.put("quantity", item.getQuantity());
                 object.put("imageUrl", item.getImageUrl());
+                object.put("note", item.getNote());
                 array.put(object);
             } catch (JSONException ignored) {
                 // Skip malformed item and keep checkout usable for the rest of the cart.

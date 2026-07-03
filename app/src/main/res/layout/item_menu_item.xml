@@ -119,6 +119,17 @@
                     android:textSize="13sp"
                     android:textStyle="bold" />
 
+                <TextView
+                    android:id="@+id/tvMenuItemOutOfStock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Hết hàng"
+                    android:textColor="@color/red_close"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
                 <View
                     android:layout_width="0dp"
                     android:layout_height="0dp"

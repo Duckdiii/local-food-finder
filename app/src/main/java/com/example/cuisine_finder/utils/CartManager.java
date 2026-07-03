@@ -66,6 +66,9 @@ public class CartManager {
         for (CartItem item : cartItems) {
             if (item.getFoodItemId().equals(newItem.getFoodItemId())) {
                 item.setQuantity(item.getQuantity() + newItem.getQuantity());
+                if (newItem.getNote() != null && !newItem.getNote().trim().isEmpty()) {
+                    item.setNote(newItem.getNote());
+                }
                 saveCart();
                 return true;
             }

@@ -20,11 +20,25 @@ import java.util.Locale;
 
 public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewViewHolder> {
 
+    public interface OnReplyClickListener {
+        void onReplyClick(Review review);
+    }
+
     private List<Review> reviews = new ArrayList<>();
+    private OnReplyClickListener replyClickListener;
+    private boolean showReplyButton = false;
 
     public void setReviews(List<Review> reviews) {
         this.reviews = reviews;
         notifyDataSetChanged();
+    }
+
+    public void setOnReplyClickListener(OnReplyClickListener listener) {
+        this.replyClickListener = listener;
+    }
+
+    public void setShowReplyButton(boolean showReplyButton) {
+        this.showReplyButton = showReplyButton;
     }
 
     @NonNull
@@ -45,19 +59,23 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
         return reviews.size();
     }
 
-    static class ReviewViewHolder extends RecyclerView.ViewHolder {
-        TextView tvUserAvatar, tvUserName, tvRatingStars, tvReviewDate, tvComment;
-        LinearLayout layoutReviewImages;
+    class ReviewViewHolder extends RecyclerView.ViewHolder {
+        TextView tvUserAvatar, tvUserName, tvReviewDate, tvComment, tvMerchantReplyText, btnReplyReview;
+        android.widget.RatingBar ratingBar;
+        LinearLayout layoutReviewImages, layoutMerchantReply;
         View scrollReviewImages;
 
         public ReviewViewHolder(@NonNull View itemView) {
             super(itemView);
             tvUserAvatar = itemView.findViewById(R.id.tvUserAvatar);
             tvUserName = itemView.findViewById(R.id.tvUserName);
-            tvRatingStars = itemView.findViewById(R.id.tvRatingStars);
+            ratingBar = itemView.findViewById(R.id.ratingBar);
             tvReviewDate = itemView.findViewById(R.id.tvReviewDate);
             tvComment = itemView.findViewById(R.id.tvComment);
+            tvMerchantReplyText = itemView.findViewById(R.id.tvMerchantReplyText);
+            btnReplyReview = itemView.findViewById(R.id.btnReplyReview);
             layoutReviewImages = itemView.findViewById(R.id.layoutReviewImages);
+            layoutMerchantReply = itemView.findViewById(R.id.layoutMerchantReply);
             scrollReviewImages = itemView.findViewById(R.id.scrollReviewImages);
         }
 
@@ -71,13 +89,9 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
             }
 
             // Rating Stars
-            StringBuilder stars = new StringBuilder();
-            for (int i = 0; i < 5; i++) {
-                if (i < (int) review.getRating()) {
-                    stars.append("⭐");
-                }
+            if (ratingBar != null) {
+                ratingBar.setRating((float) review.getRating());
             }
-            tvRatingStars.setText(stars.toString());
 
             // Date
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
@@ -112,6 +126,24 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
                 }
             } else {
                 scrollReviewImages.setVisibility(View.GONE);
+            }
+
+            if (review.getMerchantReply() != null && !review.getMerchantReply().trim().isEmpty()) {
+                tvMerchantReplyText.setText(review.getMerchantReply().trim());
+                layoutMerchantReply.setVisibility(View.VISIBLE);
+                btnReplyReview.setVisibility(View.GONE);
+            } else {
+                layoutMerchantReply.setVisibility(View.GONE);
+                if (showReplyButton) {
+                    btnReplyReview.setVisibility(View.VISIBLE);
+                    btnReplyReview.setOnClickListener(v -> {
+                        if (replyClickListener != null) {
+                            replyClickListener.onReplyClick(review);
+                        }
+                    });
+                } else {
+                    btnReplyReview.setVisibility(View.GONE);
+                }
             }
         }
     }

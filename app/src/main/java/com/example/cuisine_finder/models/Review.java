@@ -54,4 +54,13 @@ public class Review {
 
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
+
+    private String merchantReply;
+    private long repliedAt;
+
+    public String getMerchantReply() { return merchantReply; }
+    public void setMerchantReply(String merchantReply) { this.merchantReply = merchantReply; }
+
+    public long getRepliedAt() { return repliedAt; }
+    public void setRepliedAt(long repliedAt) { this.repliedAt = repliedAt; }
 }

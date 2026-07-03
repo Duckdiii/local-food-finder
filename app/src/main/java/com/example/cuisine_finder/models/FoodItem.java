@@ -17,9 +17,13 @@ public class FoodItem {
     private List<String> imageUrls;
     private long createdAt;
     private long updatedAt;
+    private boolean available = true;
 
     public FoodItem() {
     }
+
+    public boolean isAvailable() { return available; }
+    public void setAvailable(boolean available) { this.available = available; }
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }

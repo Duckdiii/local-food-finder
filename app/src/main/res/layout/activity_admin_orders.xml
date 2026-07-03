@@ -27,7 +27,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
-        android:text="Don hang"
+        android:text="Đơn hàng"
         android:textColor="@color/text_dark"
         android:textSize="28sp"
         android:textStyle="bold" />
@@ -37,7 +37,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:text="Theo doi va cap nhat trang thai don."
+        android:text="Theo dõi và cập nhật trạng thái đơn."
         android:textColor="@color/text_gray"
         android:textSize="14sp" />
 

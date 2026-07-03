@@ -22,9 +22,18 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
         void onAddToCart(FoodItem item);
     }
 
+    public interface OnItemClickListener {
+        void onItemClick(FoodItem item);
+    }
+
     private List<FoodItem> items = new ArrayList<>();
     private OnAddToCartClickListener addToCartClickListener;
+    private OnItemClickListener onItemClickListener;
     private boolean showAddButton = true;
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.onItemClickListener = listener;
+    }
 
     public void setItems(List<FoodItem> items) {
         this.items = items != null ? items : new ArrayList<>();
@@ -80,6 +89,14 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
             holder.tvPrice.setText("Liên hệ");
         }
 
+        if (item.isAvailable()) {
+            holder.tvOutOfStock.setVisibility(View.GONE);
+            holder.tvPrice.setAlpha(1.0f);
+        } else {
+            holder.tvOutOfStock.setVisibility(View.VISIBLE);
+            holder.tvPrice.setAlpha(0.5f);
+        }
+
         String imageUrl = (item.getImageUrls() != null && !item.getImageUrls().isEmpty())
                 ? item.getImageUrls().get(0) : null;
         if (imageUrl != null && !imageUrl.isEmpty()) {
@@ -92,7 +109,7 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
             holder.ivImage.setImageResource(R.drawable.bg_image_placeholder);
         }
 
-        if (showAddButton) {
+        if (showAddButton && item.isAvailable()) {
             holder.btnAdd.setVisibility(View.VISIBLE);
             holder.btnAdd.setOnClickListener(v -> {
                 if (addToCartClickListener != null && item.getPrice() > 0) {
@@ -102,6 +119,12 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
         } else {
             holder.btnAdd.setVisibility(View.GONE);
         }
+
+        holder.itemView.setOnClickListener(v -> {
+            if (onItemClickListener != null) {
+                onItemClickListener.onItemClick(item);
+            }
+        });
     }
 
     @Override
@@ -118,7 +141,7 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
 
     static class MenuViewHolder extends RecyclerView.ViewHolder {
         ImageView ivImage;
-        TextView tvName, tvDescription, tvRating, tvCategory, tvPrice;
+        TextView tvName, tvDescription, tvRating, tvCategory, tvPrice, tvOutOfStock;
         View btnAdd;
 
         MenuViewHolder(@NonNull View itemView) {
@@ -129,6 +152,7 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
             tvRating = itemView.findViewById(R.id.tvMenuItemRating);
             tvCategory = itemView.findViewById(R.id.tvMenuItemCategory);
             tvPrice = itemView.findViewById(R.id.tvMenuItemPrice);
+            tvOutOfStock = itemView.findViewById(R.id.tvMenuItemOutOfStock);
             btnAdd = itemView.findViewById(R.id.btnAddMenuItem);
         }
     }

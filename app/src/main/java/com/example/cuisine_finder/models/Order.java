@@ -18,6 +18,8 @@ public class Order {
     private List<OrderItem> items;
     private double subtotal;
     private double deliveryFee;
+    private String promoCode;
+    private double discountAmount;
     private double totalAmount;
     private String paymentMethod;
     private String paymentStatus;
@@ -68,6 +70,12 @@ public class Order {
 
     public double getDeliveryFee() { return deliveryFee; }
     public void setDeliveryFee(double deliveryFee) { this.deliveryFee = deliveryFee; }
+
+    public String getPromoCode() { return promoCode; }
+    public void setPromoCode(String promoCode) { this.promoCode = promoCode; }
+
+    public double getDiscountAmount() { return discountAmount; }
+    public void setDiscountAmount(double discountAmount) { this.discountAmount = discountAmount; }
 
     public double getTotalAmount() { return totalAmount; }
     public void setTotalAmount(double totalAmount) { this.totalAmount = totalAmount; }

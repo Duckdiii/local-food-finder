@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -11,7 +12,11 @@ import com.example.cuisine_finder.R;
 import com.example.cuisine_finder.adapters.OrderItemAdapter;
 import com.example.cuisine_finder.models.Order;
 import com.example.cuisine_finder.models.OrderStatus;
+import com.example.cuisine_finder.models.User;
+import com.example.cuisine_finder.repositories.OrderRepository;
+import com.example.cuisine_finder.repositories.UserRepository;
 import com.example.cuisine_finder.utils.InsetUtils;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import java.text.DecimalFormat;
@@ -21,11 +26,16 @@ import java.util.Locale;
 public class ActiveOrderActivity extends AppCompatActivity {
     public static final String EXTRA_ORDER_ID = "orderId";
 
-    private TextView tvOrderStatus, tvOrderRestaurantName, tvOrderTotalPrice;
-    private View indicatorPending, indicatorPreparing, indicatorDelivering;
+    private TextView tvOrderStatus, tvOrderRestaurantName, tvOrderTotalPrice, btnCancelOrder, tvActiveOrderId;
+    private View indicatorSubmitted, indicatorAccepted, indicatorPreparing, indicatorReady, indicatorDelivering;
     private OrderItemAdapter orderItemAdapter;
     private ListenerRegistration orderListener;
     private String orderId;
+    private Order currentOrder;
+    private boolean cancelling;
+
+    private final OrderRepository orderRepository = new OrderRepository();
+    private final UserRepository userRepository = new UserRepository();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,9 +66,14 @@ public class ActiveOrderActivity extends AppCompatActivity {
         tvOrderStatus = findViewById(R.id.tvOrderStatus);
         tvOrderRestaurantName = findViewById(R.id.tvOrderRestaurantName);
         tvOrderTotalPrice = findViewById(R.id.tvOrderTotalPrice);
-        indicatorPending = findViewById(R.id.indicatorPending);
+        tvActiveOrderId = findViewById(R.id.tvActiveOrderId);
+        indicatorSubmitted = findViewById(R.id.indicatorSubmitted);
+        indicatorAccepted = findViewById(R.id.indicatorAccepted);
         indicatorPreparing = findViewById(R.id.indicatorPreparing);
+        indicatorReady = findViewById(R.id.indicatorReady);
         indicatorDelivering = findViewById(R.id.indicatorDelivering);
+        btnCancelOrder = findViewById(R.id.btnCancelOrder);
+        btnCancelOrder.setOnClickListener(v -> confirmCancelOrder());
 
         RecyclerView rvOrderItems = findViewById(R.id.rvOrderItems);
         orderItemAdapter = new OrderItemAdapter();
@@ -87,32 +102,96 @@ public class ActiveOrderActivity extends AppCompatActivity {
     }
 
     private void bindOrder(Order order) {
+        if (orderId != null) {
+            tvActiveOrderId.setText("Mã đơn: #" + orderId);
+        }
+        currentOrder = order;
         tvOrderStatus.setText(getStatusLabel(order.getStatus()));
         tvOrderRestaurantName.setText(order.getRestaurantName() != null ? order.getRestaurantName() : "Quan an");
         tvOrderTotalPrice.setText(formatPrice(order.getTotalAmount()));
         orderItemAdapter.setItems(order.getItems());
         updateProgress(order.getStatus());
+
+        boolean cancellable = OrderStatus.PENDING_MERCHANT_CONFIRMATION.equals(order.getStatus());
+        btnCancelOrder.setVisibility(cancellable ? View.VISIBLE : View.GONE);
+        btnCancelOrder.setEnabled(!cancelling);
+    }
+
+    private void confirmCancelOrder() {
+        if (cancelling || currentOrder == null) return;
+        new AlertDialog.Builder(this)
+                .setTitle("Hủy đơn hàng")
+                .setMessage("Bạn có chắc chắn muốn hủy đơn hàng này?")
+                .setPositiveButton("Hủy đơn", (dialog, which) -> cancelOrder())
+                .setNegativeButton("Đóng", null)
+                .show();
+    }
+
+    private void cancelOrder() {
+        String currentUserId = FirebaseAuth.getInstance().getUid();
+        if (currentUserId == null) {
+            Toast.makeText(this, "Vui lòng đăng nhập", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        cancelling = true;
+        btnCancelOrder.setEnabled(false);
+        userRepository.getUser(currentUserId).addOnSuccessListener(documentSnapshot -> {
+            User actor = documentSnapshot.toObject(User.class);
+            if (actor == null) {
+                actor = new User();
+            }
+            actor.setId(currentUserId);
+            orderRepository.updateStatus(orderId, actor, OrderStatus.CANCELLED_BY_CUSTOMER, "Khách hàng đã hủy đơn")
+                    .addOnSuccessListener(aVoid -> {
+                        cancelling = false;
+                        Toast.makeText(this, "Đã hủy đơn hàng", Toast.LENGTH_SHORT).show();
+                    })
+                    .addOnFailureListener(e -> {
+                        cancelling = false;
+                        btnCancelOrder.setEnabled(true);
+                        Toast.makeText(this, "Không hủy được đơn: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
+        }).addOnFailureListener(e -> {
+            cancelling = false;
+            btnCancelOrder.setEnabled(true);
+            Toast.makeText(this, "Không thể xác thực người dùng", Toast.LENGTH_SHORT).show();
+        });
     }
 
     private void updateProgress(String status) {
         int active = getColor(R.color.orange_main);
         int inactive = getColor(R.color.border_light);
 
-        indicatorPending.setBackgroundColor(active);
+        if (OrderStatus.CANCELLED_BY_CUSTOMER.equals(status) || OrderStatus.REJECTED_BY_MERCHANT.equals(status)) {
+            indicatorSubmitted.setBackgroundColor(inactive);
+            indicatorAccepted.setBackgroundColor(inactive);
+            indicatorPreparing.setBackgroundColor(inactive);
+            indicatorReady.setBackgroundColor(inactive);
+            indicatorDelivering.setBackgroundColor(inactive);
+            return;
+        }
+
+        indicatorSubmitted.setBackgroundColor(active);
+        indicatorAccepted.setBackgroundColor(isAcceptedOrLater(status) ? active : inactive);
         indicatorPreparing.setBackgroundColor(isPreparingOrLater(status) ? active : inactive);
+        indicatorReady.setBackgroundColor(isReadyOrLater(status) ? active : inactive);
         indicatorDelivering.setBackgroundColor(isDeliveringOrLater(status) ? active : inactive);
     }
 
+    private boolean isAcceptedOrLater(String status) {
+        return !OrderStatus.PENDING_MERCHANT_CONFIRMATION.equals(status);
+    }
+
     private boolean isPreparingOrLater(String status) {
-        return OrderStatus.MERCHANT_ACCEPTED.equals(status)
-                || OrderStatus.PREPARING.equals(status)
-                || OrderStatus.READY_FOR_PICKUP.equals(status)
-                || isDeliveringOrLater(status);
+        return isAcceptedOrLater(status) && !OrderStatus.MERCHANT_ACCEPTED.equals(status);
+    }
+
+    private boolean isReadyOrLater(String status) {
+        return isPreparingOrLater(status) && !OrderStatus.PREPARING.equals(status);
     }
 
     private boolean isDeliveringOrLater(String status) {
-        return OrderStatus.SHIPPER_ACCEPTED.equals(status)
-                || OrderStatus.PICKED_UP.equals(status)
+        return OrderStatus.PICKED_UP.equals(status)
                 || OrderStatus.SHIPPING.equals(status)
                 || OrderStatus.DELIVERED.equals(status)
                 || OrderStatus.DELIVERY_FAILED.equals(status);

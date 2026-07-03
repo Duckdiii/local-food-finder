@@ -1,5 +1,6 @@
 package com.example.cuisine_finder.repositories;
 
+import com.example.cuisine_finder.models.FoodItem;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -24,5 +25,17 @@ public class FoodItemRepository {
                 .orderBy("averageRating", Query.Direction.DESCENDING)
                 .limit(10)
                 .get();
+    }
+
+    public Task<com.google.firebase.firestore.DocumentReference> addFoodItem(FoodItem item) {
+        return foodItemsRef.add(item);
+    }
+
+    public Task<Void> updateFoodItem(String id, FoodItem item) {
+        return foodItemsRef.document(id).set(item);
+    }
+
+    public Task<Void> deleteFoodItem(String id) {
+        return foodItemsRef.document(id).delete();
     }
 }

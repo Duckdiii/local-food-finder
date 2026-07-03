@@ -16,6 +16,7 @@ public class FoodPlace {
     private String closeTime;
     private boolean openLate;
     private String priceRange; // CHEAP, MEDIUM, EXPENSIVE
+    private double minOrderAmount;
     private double totalRating;
     private double averageRating;
     private int reviewCount;
@@ -69,6 +70,9 @@ public class FoodPlace {
     public String getPriceRange() { return priceRange; }
     public void setPriceRange(String priceRange) { this.priceRange = priceRange; }
 
+    public double getMinOrderAmount() { return minOrderAmount; }
+    public void setMinOrderAmount(double minOrderAmount) { this.minOrderAmount = minOrderAmount; }
+
     public double getTotalRating() { return totalRating; }
     public void setTotalRating(double totalRating) { this.totalRating = totalRating; }
 
@@ -98,4 +102,25 @@ public class FoodPlace {
 
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
+
+    public boolean isCurrentlyOpen() {
+        String open = (openTime == null || openTime.trim().isEmpty()) ? "07:00" : openTime;
+        String close = (closeTime == null || closeTime.trim().isEmpty()) ? "22:00" : closeTime;
+        try {
+            java.util.Calendar now = java.util.Calendar.getInstance();
+            int current = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE);
+            String[] o = open.split(":");
+            String[] c = close.split(":");
+            int openMinutes = Integer.parseInt(o[0]) * 60 + Integer.parseInt(o[1]);
+            int closeMinutes = Integer.parseInt(c[0]) * 60 + Integer.parseInt(c[1]);
+            if (openMinutes <= closeMinutes) return current >= openMinutes && current <= closeMinutes;
+            return current >= openMinutes || current <= closeMinutes; // crosses midnight
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    public boolean isOpenForOrders() {
+        return "APPROVED".equals(status) && isCurrentlyOpen();
+    }
 }

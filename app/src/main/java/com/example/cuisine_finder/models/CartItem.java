@@ -6,6 +6,7 @@ public class CartItem {
     private double price;
     private int quantity;
     private String imageUrl;
+    private String note;
 
     public CartItem() {
     }
@@ -18,10 +19,15 @@ public class CartItem {
     }
 
     public CartItem(FoodItem foodItem) {
+        this(foodItem, 1, null);
+    }
+
+    public CartItem(FoodItem foodItem, int quantity, String note) {
         this.foodItemId = foodItem.getId();
         this.name = foodItem.getName();
         this.price = foodItem.getPrice();
-        this.quantity = 1;
+        this.quantity = quantity > 0 ? quantity : 1;
+        this.note = note;
         if (foodItem.getImageUrls() != null && !foodItem.getImageUrls().isEmpty()) {
             this.imageUrl = foodItem.getImageUrls().get(0);
         }
@@ -41,6 +47,9 @@ public class CartItem {
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public String getNote() { return note; }
+    public void setNote(String note) { this.note = note; }
 
     public double getSubtotal() {
         return price * quantity;

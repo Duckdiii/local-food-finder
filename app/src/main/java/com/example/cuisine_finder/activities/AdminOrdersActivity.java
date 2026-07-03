@@ -36,6 +36,8 @@ public class AdminOrdersActivity extends AppCompatActivity {
     private final UserRepository userRepository = new UserRepository();
     private final OrderRepository orderRepository = new OrderRepository();
     private final PermissionService permissionService = new PermissionService();
+    private final com.example.cuisine_finder.services.MerchantOrderActionBinder orderActionBinder =
+            new com.example.cuisine_finder.services.MerchantOrderActionBinder(this, orderRepository);
     private final List<ListenerRegistration> orderListeners = new ArrayList<>();
     private final Map<String, Order> ordersById = new HashMap<>();
 
@@ -183,7 +185,7 @@ public class AdminOrdersActivity extends AppCompatActivity {
         rvItems.setAdapter(adapter);
         adapter.setItems(order.getItems());
 
-        bindMerchantActions(order, dialog, btnPreparing, btnDelivering, btnCompleted);
+        orderActionBinder.bind(order, currentUser, dialog, btnPreparing, btnDelivering, btnCompleted);
         dialog.setContentView(view);
         dialog.show();
     }
@@ -233,61 +235,4 @@ public class AdminOrdersActivity extends AppCompatActivity {
         return value != null && !value.trim().isEmpty() ? value.trim() : fallback;
     }
 
-    private void bindMerchantActions(
-            Order order,
-            BottomSheetDialog dialog,
-            TextView btnPreparing,
-            TextView btnDelivering,
-            TextView btnCompleted
-    ) {
-        btnPreparing.setVisibility(View.GONE);
-        btnDelivering.setVisibility(View.GONE);
-        btnCompleted.setVisibility(View.GONE);
-
-        if (OrderStatus.PENDING_MERCHANT_CONFIRMATION.equals(order.getStatus())) {
-            showAction(btnPreparing, "Nhận đơn", () -> updateStatus(order, OrderStatus.MERCHANT_ACCEPTED, "Merchant accepted order", dialog));
-            showAction(btnDelivering, "Từ chối", () -> updateStatus(order, OrderStatus.REJECTED_BY_MERCHANT, "Merchant rejected order", dialog));
-            return;
-        }
-        if (OrderStatus.MERCHANT_ACCEPTED.equals(order.getStatus())) {
-            showAction(btnPreparing, "Chế biến", () -> updateStatus(order, OrderStatus.PREPARING, "Merchant started preparing", dialog));
-            return;
-        }
-        if (OrderStatus.PREPARING.equals(order.getStatus())) {
-            showAction(btnCompleted, "Sẵn sàng giao", () -> updateStatus(order, OrderStatus.READY_FOR_PICKUP, "Order ready for delivery", dialog));
-            return;
-        }
-        if (OrderStatus.READY_FOR_PICKUP.equals(order.getStatus())) {
-            showAction(btnPreparing, "Nhận giao", () -> updateStatus(order, OrderStatus.DELIVERY_ASSIGNED, "Merchant accepted delivery", dialog));
-            return;
-        }
-        if (OrderStatus.DELIVERY_ASSIGNED.equals(order.getStatus())
-                || OrderStatus.SHIPPER_ACCEPTED.equals(order.getStatus())
-                || OrderStatus.PICKED_UP.equals(order.getStatus())) {
-            showAction(btnDelivering, "Đang giao", () -> updateStatus(order, OrderStatus.SHIPPING, "Merchant started delivery", dialog));
-            return;
-        }
-        if (OrderStatus.SHIPPING.equals(order.getStatus())) {
-            showAction(btnCompleted, "Giao thành công", () -> updateStatus(order, OrderStatus.DELIVERED, "Delivered", dialog));
-            showAction(btnDelivering, "Thất bại", () -> updateStatus(order, OrderStatus.DELIVERY_FAILED, "Delivery failed", dialog));
-        }
-    }
-
-    private void showAction(TextView button, String label, Runnable action) {
-        button.setText(label);
-        button.setVisibility(View.VISIBLE);
-        button.setOnClickListener(v -> action.run());
-    }
-
-    private void updateStatus(Order order, String nextStatus, String note, BottomSheetDialog dialog) {
-        if (currentUser == null) return;
-        orderRepository.updateStatus(order.getId(), currentUser, nextStatus, note)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Đã cập nhật đơn", Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Không cập nhật được: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
-    }
 }

@@ -46,6 +46,16 @@
             android:textColor="@color/text_gray"
             android:textSize="14sp" />
 
+        <TextView
+            android:id="@+id/tvActiveOrderId"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Mã đơn: "
+            android:textColor="@color/text_dark"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -89,18 +99,36 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="28dp"
                     android:orientation="horizontal"
-                    android:weightSum="3">
+                    android:weightSum="5">
 
                     <View
-                        android:id="@+id/indicatorPending"
+                        android:id="@+id/indicatorSubmitted"
                         android:layout_width="0dp"
                         android:layout_height="8dp"
                         android:layout_marginEnd="4dp"
                         android:layout_weight="1"
-                        android:background="@color/orange_main" />
+                        android:background="@color/border_light" />
+
+                    <View
+                        android:id="@+id/indicatorAccepted"
+                        android:layout_width="0dp"
+                        android:layout_height="8dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
+                        android:layout_weight="1"
+                        android:background="@color/border_light" />
 
                     <View
                         android:id="@+id/indicatorPreparing"
+                        android:layout_width="0dp"
+                        android:layout_height="8dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
+                        android:layout_weight="1"
+                        android:background="@color/border_light" />
+
+                    <View
+                        android:id="@+id/indicatorReady"
                         android:layout_width="0dp"
                         android:layout_height="8dp"
                         android:layout_marginStart="4dp"
@@ -122,13 +150,13 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:orientation="horizontal"
-                    android:weightSum="3">
+                    android:weightSum="5">
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Cho duyet"
+                        android:text="Gửi đơn"
                         android:textAlignment="center"
                         android:textColor="@color/text_gray"
                         android:textSize="11sp" />
@@ -137,7 +165,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Lam mon"
+                        android:text="Nhận đơn"
                         android:textAlignment="center"
                         android:textColor="@color/text_gray"
                         android:textSize="11sp" />
@@ -146,11 +174,42 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Giao hang"
+                        android:text="Làm món"
+                        android:textAlignment="center"
+                        android:textColor="@color/text_gray"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Chờ giao"
+                        android:textAlignment="center"
+                        android:textColor="@color/text_gray"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Đang giao"
                         android:textAlignment="center"
                         android:textColor="@color/text_gray"
                         android:textSize="11sp" />
                 </LinearLayout>
+
+                <TextView
+                    android:id="@+id/btnCancelOrder"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="20dp"
+                    android:background="@drawable/bg_icon_soft"
+                    android:gravity="center"
+                    android:text="Hủy đơn hàng"
+                    android:textColor="@color/red_close"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

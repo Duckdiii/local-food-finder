@@ -484,6 +484,16 @@
                         android:textSize="13sp" />
                 </LinearLayout>
 
+                <ProgressBar
+                    android:id="@+id/progressBarMenu"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="32dp"
+                    android:layout_marginBottom="32dp"
+                    android:visibility="gone"
+                    android:indeterminateTint="@color/orange_main" />
+
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvMenu"
                     android:layout_width="match_parent"

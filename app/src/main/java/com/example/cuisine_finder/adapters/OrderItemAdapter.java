@@ -34,8 +34,15 @@ public class OrderItemAdapter extends RecyclerView.Adapter<OrderItemAdapter.Orde
     public void onBindViewHolder(@NonNull OrderItemViewHolder holder, int position) {
         OrderItem item = items.get(position);
         holder.tvQuantity.setText(item.getQuantity() + "x");
-        holder.tvName.setText(item.getName() != null ? item.getName() : "Mon an");
+        holder.tvName.setText(item.getName() != null ? item.getName() : "Món ăn");
         holder.tvPrice.setText(formatPrice(item.getSubtotal()));
+
+        if (item.getNote() != null && !item.getNote().trim().isEmpty()) {
+            holder.tvNote.setText("Ghi chu: " + item.getNote().trim());
+            holder.tvNote.setVisibility(View.VISIBLE);
+        } else {
+            holder.tvNote.setVisibility(View.GONE);
+        }
     }
 
     @Override
@@ -51,13 +58,14 @@ public class OrderItemAdapter extends RecyclerView.Adapter<OrderItemAdapter.Orde
     }
 
     static class OrderItemViewHolder extends RecyclerView.ViewHolder {
-        TextView tvQuantity, tvName, tvPrice;
+        TextView tvQuantity, tvName, tvPrice, tvNote;
 
         OrderItemViewHolder(@NonNull View itemView) {
             super(itemView);
             tvQuantity = itemView.findViewById(R.id.tvOrderItemQuantity);
             tvName = itemView.findViewById(R.id.tvOrderItemName);
             tvPrice = itemView.findViewById(R.id.tvOrderItemPrice);
+            tvNote = itemView.findViewById(R.id.tvOrderItemNote);
         }
     }
 }

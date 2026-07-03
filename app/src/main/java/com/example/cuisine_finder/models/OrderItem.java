@@ -7,6 +7,7 @@ public class OrderItem {
     private int quantity;
     private double subtotal;
     private String imageUrl;
+    private String note;
 
     public OrderItem() {
     }
@@ -18,6 +19,7 @@ public class OrderItem {
         this.quantity = cartItem.getQuantity();
         this.subtotal = cartItem.getSubtotal();
         this.imageUrl = cartItem.getImageUrl();
+        this.note = cartItem.getNote();
     }
 
     public String getFoodItemId() { return foodItemId; }
@@ -37,4 +39,7 @@ public class OrderItem {
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public String getNote() { return note; }
+    public void setNote(String note) { this.note = note; }
 }
