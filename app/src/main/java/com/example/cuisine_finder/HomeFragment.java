@@ -61,8 +61,10 @@ public class HomeFragment extends Fragment {
     private ImageView ivUserAvatar;
     private String currentUserAvatarUrl = null;
 
-    private final ActivityResultLauncher<String> storyImagePickerLauncher =
-            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+    //mở một ứng dụng khác và nhận kết quả trả về
+    private final ActivityResultLauncher<String> storyImagePickerLauncher = // nhấn nút "phóng" là ứng dụng thư viện ảnh sẽ hiện ra
+            //
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> { // lấy nội dung từ máy điện thoại -> ảnh
                 if (uri != null) {
                     uploadStory(uri);
                 }
@@ -85,10 +87,21 @@ public class HomeFragment extends Fragment {
     private TextView btnRandomSuggestion;
 
     private static final int LOCATION_PERMISSION_REQUEST = 1002;
-
+    //onCreate()
+    //    ↓
+    //onCreateView()   ← tạo layout ở đây
+    //    ↓
+    //onViewCreated()  ← tìm view, gán listener ở đây
+    //    ↓
+    //onStart()
+    //    ↓
+    //onResume()
     @Nullable
     @Override
+    //là một lifecycle method của Fragment trong Android, được gọi khi Fragment cần tạo giao diện (UI) của nó
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        //Tạo và trả về View (layout) cho Fragment
+        //Được gọi sau onCreate() và trước onViewCreated()
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
         authService = new AuthService();
@@ -109,14 +122,15 @@ public class HomeFragment extends Fragment {
         btnRandomSuggestion.setOnClickListener(v -> startRandomSuggestion());
 
         ivUserAvatar = view.findViewById(R.id.ivUserAvatar);
-        View cardUserAvatar = view.findViewById(R.id.cardUserAvatar);
+        //nhấn vào ảnh đại diện (Avatar) ở góc màn hình để nhảy nhanh sang trang Cá nhân (Profile)
+        View cardUserAvatar = view.findViewById(R.id.cardUserAvatar);// lấy view của card chứa avatar người dùng
         if (cardUserAvatar != null) {
-            cardUserAvatar.setOnClickListener(v -> {
-                if (getActivity() != null) {
+            cardUserAvatar.setOnClickListener(v -> {//Khi người dùng chạm tay vào vùng ảnh đại diện
+                if (getActivity() != null) {//  nếu activity hiện tại không null, tức là fragment đang được hiển thị trong một activity
                     com.google.android.material.bottomnavigation.BottomNavigationView bottomNav =
                             getActivity().findViewById(R.id.bottomNavigation);
-                    if (bottomNav != null) {
-                        bottomNav.setSelectedItemId(R.id.nav_profile);
+                    if (bottomNav != null) {//  nếu bottomNav không null, tức là tìm thấy BottomNavigationView trong activity
+                        bottomNav.setSelectedItemId(R.id.nav_profile); // chuyển tab
                     }
                 }
             });
@@ -124,9 +138,9 @@ public class HomeFragment extends Fragment {
 
         setupRecyclerViews();
 
-        EditText etSearch = view.findViewById(R.id.etHomeSearch);
+        EditText etSearch = view.findViewById(R.id.etHomeSearch);// ô nhập liệu tìm kiếm món ăn/quán ăn
         etSearch.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {//   Khi người dùng nhấn nút tìm kiếm trên bàn phím ảo (IME_ACTION_SEARCH)
                 navigateToSearchResult(etSearch.getText().toString());
                 return true;
             }
@@ -144,60 +158,73 @@ public class HomeFragment extends Fragment {
         checkLocationAndLoadNearby();
 
         // Setup Map text click listener
-        TextView tvHomeMapNearby = view.findViewById(R.id.tvHomeMapNearby);
+        TextView tvHomeMapNearby = view.findViewById(R.id.tvHomeMapNearby);// nút chuyển sang bản đồ khám phá
         if (tvHomeMapNearby != null) {
             tvHomeMapNearby.setOnClickListener(v -> {
                 if (getActivity() != null) {
                     com.google.android.material.bottomnavigation.BottomNavigationView bottomNav =
                             getActivity().findViewById(R.id.bottomNavigation);
                     if (bottomNav != null) {
-                        bottomNav.setSelectedItemId(R.id.nav_explore);
+                        bottomNav.setSelectedItemId(R.id.nav_explore);// chyển tab
                     }
                 }
             });
         }
 
-        // Setup View All Friends click listener
-        TextView tvHomeViewAllFriends = view.findViewById(R.id.tvHomeViewAllFriends);
+        // Điều hướng từ màn hình này sang màn hình khác
+        TextView tvHomeViewAllFriends = view.findViewById(R.id.tvHomeViewAllFriends);// nút chuyển sang trang bạn bè
         if (tvHomeViewAllFriends != null) {
             tvHomeViewAllFriends.setOnClickListener(v -> {
+                //Tạo Intent để chuyển sang màn hình FriendsActivity
                 Intent intent = new Intent(requireContext(), com.example.cuisine_finder.activities.FriendsActivity.class);
+                //Thực sự mở màn hình đó
                 startActivity(intent);
             });
         }
-        // Setup View All Featured click listener (Gợi ý siêu hot)
-        TextView tvViewAllFeatured = view.findViewById(R.id.tvViewAllFeatured);
+
+        TextView tvViewAllFeatured = view.findViewById(R.id.tvViewAllFeatured);//   nút chuyển sang trang danh sách món ăn nổi bật
         if (tvViewAllFeatured != null) {
             tvViewAllFeatured.setOnClickListener(v -> {
+                //Tạo Intent mở màn hình PlacesByCategoryActivity
                 Intent intent = new Intent(requireContext(), com.example.cuisine_finder.activities.PlacesByCategoryActivity.class);
+                //Truyền dữ liệu kèm theo Intent
                 intent.putExtra(com.example.cuisine_finder.activities.PlacesByCategoryActivity.EXTRA_MODE,
-                        com.example.cuisine_finder.activities.PlacesByCategoryActivity.MODE_FEATURED);
+                        com.example.cuisine_finder.activities.PlacesByCategoryActivity.MODE_FEATURED);// chế độ: "nổi bật"
+                // rating tối thiểu để lọc
                 intent.putExtra(com.example.cuisine_finder.activities.PlacesByCategoryActivity.EXTRA_MIN_RATING, FEATURED_MIN_RATING);
+                //Mở màn hình
                 startActivity(intent);
             });
         }
 
         return view;
     }
-
+    //khởi tạo 5 danh sách cuộn ngang trên màn hình Home, mỗi danh sách đều theo cùng một pattern
     private void setupRecyclerViews() {
+        //Tạo Adapter (cầu nối giữa dữ liệu và giao diện)
         friendsAdapter = new FriendsAdapter(friendsList);
+        //Gắn LayoutManager (cuộn ngang)
         rvFriends.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        //Gắn Adapter vào RecyclerView
         rvFriends.setAdapter(friendsAdapter);
 
         categoryAdapter = new CategoryAdapter(categoriesList);
+        //Gắn LayoutManager (cuộn ngang)
         rvCategories.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvCategories.setAdapter(categoryAdapter);
 
         featuredFoodAdapter = new FeaturedFoodAdapter(featuredFoodList);
+        //Gắn LayoutManager (cuộn ngang)
         rvFeaturedFood.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvFeaturedFood.setAdapter(featuredFoodAdapter);
 
         trendingAdapter = new TrendingPlaceAdapter(trendingList);
+        //Gắn LayoutManager (cuộn ngang)
         rvTrendingPlaces.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvTrendingPlaces.setAdapter(trendingAdapter);
 
         storyAdapter = new StoryAdapter(storyList);
+        //Gắn LayoutManager (cuộn ngang)
         rvStories.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvStories.setAdapter(storyAdapter);
     }
@@ -210,20 +237,30 @@ public class HomeFragment extends Fragment {
         friendsList.clear();
         friendsAdapter.notifyDataSetChanged();
 
+        //Lấy danh sách quan hệ bạn bè mà currentUser đã GỬI lời mời
+        //Khi Firebase trả về kết quả (bất đồng bộ) thì chạy code bên trong
         friendshipRepository.getFriendsByRequester(currentUserId).addOnCompleteListener(task -> {
+            //Kiểm tra: có thành công và có dữ liệu không?
             if (task.isSuccessful() && task.getResult() != null) {
+                //Duyệt qua từng document (mỗi doc = 1 quan hệ bạn bè)
                 for (DocumentSnapshot doc : task.getResult().getDocuments()) {
+                    //Lấy trạng thái của quan hệ đó
                     String status = doc.getString("status");
+                    //Chỉ lấy những người đã CHẤP NHẬN lời mời
                     if (Friendship.STATUS_ACCEPTED.equals(status)) {
+                        //Lấy ID của người nhận lời mời
                         String friendId = doc.getString("receiverId");
+                        //Fetch thông tin profile của người đó
                         if (friendId != null) fetchFriendProfile(friendId);
                     }
                 }
             }
         });
-
+        //lấy bạn bè đã GỬI lời mời CHO currentUser
         friendshipRepository.getFriendsByReceiver(currentUserId).addOnCompleteListener(task -> {
+            //Kiểm tra: có thành công và có dữ liệu không?
             if (task.isSuccessful() && task.getResult() != null) {
+                //Duyệt qua từng document (mỗi doc = 1 quan hệ bạn bè)
                 for (DocumentSnapshot doc : task.getResult().getDocuments()) {
                     String status = doc.getString("status");
                     if (Friendship.STATUS_ACCEPTED.equals(status)) {
@@ -234,7 +271,7 @@ public class HomeFragment extends Fragment {
             }
         });
     }
-
+    //
     private void fetchFriendProfile(String friendId) {
         userRepository.getUser(friendId).addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
@@ -242,6 +279,7 @@ public class HomeFragment extends Fragment {
                 if (friend != null) {
                     friend.setId(friendId);
                     friendsList.add(friend);
+                    //Thông báo cho RecyclerView cập nhật UI
                     friendsAdapter.notifyDataSetChanged();
                 }
             }
@@ -314,24 +352,33 @@ public class HomeFragment extends Fragment {
         Toast.makeText(getContext(), "Đang đăng tin...", Toast.LENGTH_SHORT).show();
 
         String uid = authService.getCurrentUser().getUid();
+
+        // Tạo đường dẫn file duy nhất trên Firebase Storage
+        // VD: "stories/1719825600000_uid123.jpg"
         String path = "stories/" + System.currentTimeMillis() + "_" + uid + ".jpg";
+
+        // Trỏ tới vị trí sẽ upload trên Firebase Storage
         com.google.firebase.storage.StorageReference ref = com.google.firebase.storage.FirebaseStorage.getInstance().getReference(path);
 
-        ref.putFile(uri)
+        ref.putFile(uri) // upload file ảnh từ điện thoại lên Firebase
                 .continueWithTask(task -> {
                     if (!task.isSuccessful() && task.getException() != null) {
                         throw task.getException();
                     }
                     return ref.getDownloadUrl();
                 })
+                // Upload thành công → lưu story vào Firestore
                 .addOnSuccessListener(url -> {
                     saveStoryToFirestore(uid, url.toString());
                 })
+                // Upload thất bại (mất mạng,...) → lưu ảnh vào bộ nhớ máy thay thế
                 .addOnFailureListener(e -> {
-                    android.content.Context context = getContext();
+                    android.content.Context context = getContext(); //đại diện cho trạng thái hiện tại của ứng dụng và cho phép truy cập vào các tài nguyên hệ thống
                     if (context != null) {
+                        // Lưu ảnh vào bộ nhớ máy
                         String localUrl = com.example.cuisine_finder.utils.ImageStorageUtils.saveImageToInternalStorage(context, uri, "stories");
                         saveStoryToFirestore(uid, localUrl);
+                        //Hiển thị Toast
                         Toast.makeText(context, "Đăng tin thành công (sử dụng ảnh local do lỗi kết nối)!", Toast.LENGTH_SHORT).show();
                     } else {
                         Toast.makeText(getContext(), "Lỗi tải ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -340,43 +387,51 @@ public class HomeFragment extends Fragment {
     }
 
     private void saveStoryToFirestore(String uid, String imageUrl) {
+        // Lấy thông tin người dùng
         userRepository.getUser(uid).addOnSuccessListener(doc -> {
             User user = doc.toObject(User.class);
             String name = (user != null && user.getFullName() != null) ? user.getFullName() : "User";
             String avatar = (user != null && user.getAvatarUrl() != null) ? user.getAvatarUrl() : "";
 
+            //Tạo object Story
             Story story = new Story();
             story.setUserId(uid);
             story.setUserName(name);
             story.setUserAvatarUrl(avatar);
             story.setImageUrl(imageUrl);
             story.setCaption("Mới chia sẻ");
+            story.setCreatedAt(System.currentTimeMillis());
 
-            storyRepository.uploadStory(story).addOnSuccessListener(aVoid -> {
+            // Lưu đối tượng Story vào Firestore thông qua repository
+            storyRepository.uploadStory(story).addOnSuccessListener(documentReference -> {
+                // Chỉ hiện Toast nếu ảnh là URL thật (không phải ảnh local)
                 if (imageUrl != null && !imageUrl.startsWith("file://")) {
                     Toast.makeText(getContext(), "Đăng tin thành công!", Toast.LENGTH_SHORT).show();
                 }
-                loadStories();
-            });
+                loadStories(); // Tải lại danh sách tin mới nhất
+            }).addOnFailureListener(e -> Toast.makeText(getContext(), "Lỗi lưu tin: " + e.getMessage(), Toast.LENGTH_SHORT).show());
         });
     }
 
     private void loadTrendingPlaces() {
+        //Lấy dữ liệu từ Firestore
         placeRepository.getApprovedPlaces().get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null) {
                         trendingList.clear();
+                        //Chuyển documents thành objects
                         List<FoodPlace> tempPlaces = new ArrayList<>();
                         for (DocumentSnapshot doc : task.getResult().getDocuments()) {
-                            FoodPlace place = doc.toObject(FoodPlace.class);
+                            FoodPlace place = doc.toObject(FoodPlace.class);// document → object
                             if (place != null) {
-                                place.setId(doc.getId());
+                                place.setId(doc.getId());// gán ID thủ công (Firestore không tự map)
                                 tempPlaces.add(place);
                             }
                         }
-                        // Sort in memory by favoriteCount descending to avoid Firestore index requirements
+                        // Sắp xếp giảm dần theo favoriteCount (nhiều tim nhất lên đầu)
                         Collections.sort(tempPlaces, (p1, p2) -> Integer.compare(p2.getFavoriteCount(), p1.getFavoriteCount()));
 
+                        // Chỉ lấy tối đa 10 quán đầu tiên
                         for (int i = 0; i < Math.min(10, tempPlaces.size()); i++) {
                             trendingList.add(tempPlaces.get(i));
                         }
@@ -395,81 +450,63 @@ public class HomeFragment extends Fragment {
                     Story story = doc.toObject(Story.class);
                     if (story != null) storyList.add(story);
                 }
-                if (storyList.isEmpty()) {
-                    createMockStories();
-                } else {
-                    storyAdapter.notifyDataSetChanged();
-                }
+                storyAdapter.notifyDataSetChanged();
             }
         });
     }
 
-    private void createMockStories() {
-        String[] names = {"Nguyễn Văn A", "Trần Thị B", "Lê Văn C"};
-        String[] captions = {"🍜 Bún bò Huế ngon xỉu!", "🍕 Pizza tối nay nè", "☕ Cà phê sáng sảng khoái"};
-        String[] storyImages = {
-            "https://images.unsplash.com/photo-1583085293629-77ab47743d22?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=80"
-        };
-        String[] avatars = {
-            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
-            "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
-            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80"
-        };
-
-        for (int i = 0; i < names.length; i++) {
-            Story story = new Story();
-            story.setUserName(names[i]);
-            story.setCaption(captions[i]);
-            story.setImageUrl(storyImages[i]);
-            story.setUserAvatarUrl(avatars[i]);
-            story.setUserId("mock_user_" + i);
-            storyRepository.uploadStory(story);
-            storyList.add(story);
-        }
-        storyAdapter.notifyDataSetChanged();
-    }
 
     private void checkLocationAndLoadNearby() {
+        //Kiểm tra Fragment còn tồn tại không
         if (!isAdded()) return;
-        if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.ACCESS_FINE_LOCATION)
-                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+        //Kiểm tra quyền GPS
+        if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.ACCESS_FINE_LOCATION)// quyền GPS chính xác
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {// nếu CHƯA được cấp quyền
+            //Xin quyền nếu chưa có
             requestPermissions(new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
-                    LOCATION_PERMISSION_REQUEST);
+                    LOCATION_PERMISSION_REQUEST);// mã để nhận kết quả sau khi user chọn
             return;
         }
-        retrieveLocationAndLoad();
+        retrieveLocationAndLoad();// lấy tọa độ → load quán gần đây
     }
 
-    private void retrieveLocationAndLoad() {
-        if (!isAdded()) return;
+    private void retrieveLocationAndLoad() { //lấy vị trí GPS và load quán gần đây
+        if (!isAdded()) return;// Fragment còn tồn tại không?
         android.location.LocationManager lm = (android.location.LocationManager)
                 requireContext().getSystemService(android.content.Context.LOCATION_SERVICE);
         if (lm == null) {
-            loadFallbackNearbyRestaurant();
+            loadFallbackNearbyRestaurant();// GPS không khả dụng → dùng fallback
             return;
         }
         try {
+            //Thử lấy vị trí đã biết gần nhất
+            // Thử lấy vị trí cuối cùng từ GPS
             android.location.Location last = lm.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER);
+            // Nếu GPS không có → thử lấy từ mạng (WiFi/4G)
             if (last == null) last = lm.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER);
 
+            //Nếu có vị trí sẵn rồi
             if (last != null) {
+                // Dùng luôn tọa độ đã có
                 loadNearbyRestaurant(last.getLatitude(), last.getLongitude());
+                //Nếu chưa có vị trí nào
             } else {
-                // Show fallback immediately so the UI is not empty while waiting for GPS lock
+                // Hiện fallback trước để UI không bị trống
                 loadFallbackNearbyRestaurant();
-
+                // Tạo listener chờ GPS trả về vị trí thật
                 android.location.LocationListener listener = new android.location.LocationListener() {
                     @Override
                     public void onLocationChanged(@NonNull android.location.Location loc) {
-                        if (!isAdded()) return;
+                        if (!isAdded())
+                            return;
+                        // Khi có vị trí thật → load lại quán gần đây
                         loadNearbyRestaurant(loc.getLatitude(), loc.getLongitude());
                     }
                     @Override public void onStatusChanged(String provider, int status, Bundle extras) {}
                     @Override public void onProviderEnabled(@NonNull String provider) {}
                     @Override public void onProviderDisabled(@NonNull String provider) {}
                 };
+                // Đăng ký nhận 1 lần vị trí từ GPS hoặc mạng
                 if (lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER)) {
                     lm.requestSingleUpdate(android.location.LocationManager.GPS_PROVIDER, listener,
                             requireActivity().getMainLooper());
@@ -494,7 +531,7 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private void loadNearbyRestaurant(double userLat, double userLon) {
+    private void loadNearbyRestaurant(double userLat, double userLon) { // Tìm và hiển thị quán ăn gần nhất dựa trên tọa độ GPS của người dùng.
         placeRepository.getCachedApprovedPlaces(new PlaceRepository.OnPlacesLoadedCallback() {
             @Override
             public void onLoaded(List<FoodPlace> places) {

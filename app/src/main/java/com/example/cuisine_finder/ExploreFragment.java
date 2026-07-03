@@ -105,8 +105,11 @@ public class ExploreFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_explore, container, false);
 
         placeRepository = new PlaceRepository();
+        // Cấu hình osmdroid: sử dụng SharedPreferences để quản lý bộ nhớ đệm bản đồ
         Configuration.getInstance().load(requireContext(),
                 requireContext().getSharedPreferences("osmdroid", Context.MODE_PRIVATE));
+        // Thiết lập User Agent để tránh bị chặn bởi server cung cấp bản đồ
+        // lấy tên gói úng dụng -> com.example.cuisine_finder và gắn vào mỗi yêu cầu tải ảnh bản đồ
         Configuration.getInstance().setUserAgentValue(requireContext().getPackageName());
 
         initViews(view);
@@ -194,21 +197,21 @@ public class ExploreFragment extends Fragment {
     // ─── Map setup ────────────────────────────────────────────────────────────
 
     private void setupMap() {
-        mapView.setTileSource(TileSourceFactory.MAPNIK);
-        mapView.setMultiTouchControls(true);
-        mapView.getZoomController().setVisibility(CustomZoomButtonsController.Visibility.NEVER);
-        mapView.getController().setZoom(15.0);
-        mapView.getController().setCenter(new GeoPoint(10.762622, 106.660172));
+        mapView.setTileSource(TileSourceFactory.MAPNIK); // Sử dụng nguồn bản đồ chuẩn Mapnik
+        mapView.setMultiTouchControls(true); // Cho phép người dùng phóng to/thu nhỏ bằng cử chỉ chụm/giãn
+        mapView.getZoomController().setVisibility(CustomZoomButtonsController.Visibility.NEVER); // Ẩn các nút zoom mặc định của osmdroid, chúng ta sẽ dùng nút zoom tùy chỉnh
+        mapView.getController().setZoom(15.0); //   Thiết lập mức zoom mặc định khi mở bản đồ
+        mapView.getController().setCenter(new GeoPoint(10.762622, 106.660172)); //  Thiết lập vị trí trung tâm mặc định (TP. Hồ Chí Minh)
 
-        markerClusterer = new RadiusMarkerClusterer(requireContext());
+        markerClusterer = new RadiusMarkerClusterer(requireContext()); //   Tạo một đối tượng clusterer để gom các ghim gần nhau thành một nhóm
         markerClusterer.setRadius(100);
         mapView.getOverlays().add(markerClusterer);
     }
 
-    private void setupSearch() {
+    private void setupSearch() { // Thiết lập hành vi tìm kiếm khi người dùng nhấn nút "Tìm kiếm" trên bàn phím
         etSearch.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                if (!etSearch.getText().toString().trim().isEmpty()) {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {//   Ẩn bàn phím và thực hiện tìm kiếm
+                if (!etSearch.getText().toString().trim().isEmpty()) { //   Chỉ thực hiện tìm kiếm nếu người dùng đã nhập từ khóa
                     refreshMap();
                     hideKeyboard();
                 }
@@ -287,10 +290,10 @@ public class ExploreFragment extends Fragment {
 
     // ─── Data loading & filtering ─────────────────────────────────────────────
 
-    private void refreshMap() {
+    private void refreshMap() { //  Hàm này thực hiện việc lọc dữ liệu dựa trên các bộ lọc và từ khóa tìm kiếm, sau đó cập nhật bản đồ và danh sách kết quả
         String q = etSearch.getText().toString().trim().toLowerCase();
         boolean hasFilters = filterOpenNow || filterNearMe || filterOpenLate || filterPrice != null || !q.isEmpty();
-        if (!hasFilters) {
+        if (!hasFilters) { //   Nếu không có bộ lọc nào được áp dụng và từ khóa tìm kiếm trống, chúng ta sẽ xóa tất cả các ghim trên bản đồ và danh sách kết quả, đồng thời ẩn khung thông tin phía dưới
             clearMarkers();
             foundPlaces.clear();
             resultsAdapter.notifyDataSetChanged();
@@ -298,9 +301,9 @@ public class ExploreFragment extends Fragment {
             return;
         }
 
-        placeRepository.getCachedApprovedPlaces(new PlaceRepository.OnPlacesLoadedCallback() {
+        placeRepository.getCachedApprovedPlaces(new PlaceRepository.OnPlacesLoadedCallback() { //   Lấy danh sách tất cả các quán ăn đã được phê duyệt từ bộ nhớ đệm (cache) và áp dụng các bộ lọc và từ khóa tìm kiếm
             @Override
-            public void onLoaded(List<FoodPlace> allPlaces) {
+            public void onLoaded(List<FoodPlace> allPlaces) { //  Khi dữ liệu được tải xong, chúng ta sẽ lọc danh sách quán ăn dựa trên các bộ lọc và từ khóa tìm kiếm, sau đó cập nhật bản đồ và danh sách kết quả
                 if (!isAdded()) return;
                 List<FoodPlace> results = new ArrayList<>();
                 for (FoodPlace place : allPlaces) {
@@ -344,18 +347,20 @@ public class ExploreFragment extends Fragment {
         return true;
     }
 
-    private double distanceKm(double lat1, double lon1, double lat2, double lon2) {
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
+    private double distanceKm(double lat1, double lon1, double lat2, double lon2) {//   Hàm này tính khoảng cách giữa hai điểm trên bề mặt Trái Đất dựa trên tọa độ vĩ độ và kinh độ của chúng, sử dụng công thức Haversine
+        double dLat = Math.toRadians(lat2 - lat1); //   Chuyển đổi độ vĩ độ và kinh độ từ độ sang radian
+
+        double dLon = Math.toRadians(lon2 - lon1); //
         double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);//
         return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     // ─── Results display ──────────────────────────────────────────────────────
 
     private void handleResults(List<FoodPlace> results) {
+        //hàm này có nhiệm vụ quyết định xem bản đồ sẽ trông như thế nào và người dùng sẽ thấy gì ở khung thông tin phía dưới.
         clearMarkers();
         updateLocationCircle();
         foundPlaces.clear();
@@ -373,13 +378,14 @@ public class ExploreFragment extends Fragment {
             if (hasValidCoordinates(place)) {
                 GeoPoint point = new GeoPoint(place.getLatitude(), place.getLongitude());
                 addMarker(place, point);
-                validPoints.add(point);
+                validPoints.add(point); // cập nhật ngay lập tức các ghim vừa cắm lên màn hình
             }
         }
 
         // Single invalidate after all markers are added to the clusterer
         mapView.invalidate();
-
+        //Nếu chỉ có 1 quán: App tự động "bay" (animate) đến đúng vị trí quán đó và phóng to tối đa để người dùng thấy rõ đường đi.
+        //Nếu có nhiều quán: App sử dụng hàm zoomToFitAll. Nó sẽ tự tính toán mức thu nhỏ vừa đủ để tất cả các ghim tìm thấy đều hiện ra trên màn hình, người dùng không cần phải vuốt đi đâu cả.
         if (validPoints.size() == 1) {
             mapView.getController().animateTo(validPoints.get(0));
             mapView.getController().setZoom(17.0);
@@ -388,7 +394,8 @@ public class ExploreFragment extends Fragment {
         }
 
         resultsAdapter.notifyDataSetChanged();
-
+        //Trường hợp 1 quán: App mở ngay bảng chi tiết của quán đó (hiện ảnh to, thực đơn, đánh giá).
+        //Trường hợp nhiều quán: App hiện một danh sách các thẻ (Card) nằm ngang. Người dùng có thể vuốt qua lại để xem lướt các quán trước khi chọn 1 quán cụ thể.
         if (results.size() == 1) {
             selectedPlace = results.get(0);
             Marker m = markersByPlaceId.get(selectedPlace.getId());
@@ -469,28 +476,28 @@ public class ExploreFragment extends Fragment {
         if (mapView != null) mapView.invalidate();
     }
 
-    private void updateLocationCircle() {
+    private void updateLocationCircle() {// Hàm này vẽ một vòng tròn bán kính 1km xung quanh vị trí hiện tại của người dùng nếu bộ lọc "Gần tôi" được bật. Vòng tròn này giúp người dùng dễ dàng nhận biết khu vực tìm kiếm.
         if (mapView == null) return;
 
-        if (locationCircleOverlay != null) {
+        if (locationCircleOverlay != null) { // Nếu đã có vòng tròn cũ, xóa nó trước khi vẽ vòng tròn mới
             mapView.getOverlays().remove(locationCircleOverlay);
             locationCircleOverlay = null;
         }
 
-        if (filterNearMe && myCurrentLocation != null) {
-            locationCircleOverlay = new Polygon(mapView);
-            ArrayList<GeoPoint> circlePoints = Polygon.pointsAsCircle(myCurrentLocation, NEAR_ME_RADIUS_KM * 1000.0);
+        if (filterNearMe && myCurrentLocation != null) {//  Nếu bộ lọc "Gần tôi" được bật và chúng ta đã biết vị trí hiện tại của người dùng, vẽ vòng tròn bán kính 1km xung quanh vị trí đó
+            locationCircleOverlay = new Polygon(mapView);// Tạo một đối tượng Polygon để vẽ vòng tròn
+            ArrayList<GeoPoint> circlePoints = Polygon.pointsAsCircle(myCurrentLocation, NEAR_ME_RADIUS_KM * 1000.0);// Tạo danh sách các điểm tạo thành vòng tròn bán kính 1km xung quanh vị trí hiện tại
             locationCircleOverlay.setPoints(circlePoints);
 
-            // Styled as semi-transparent orange matching theme/app aesthetics
+            //  Set fill and stroke colors with transparency
             locationCircleOverlay.setFillColor(Color.parseColor("#15FF7A30"));
             locationCircleOverlay.setStrokeColor(Color.parseColor("#FFFF7A30"));
             locationCircleOverlay.setStrokeWidth(2.0f);
 
-            // Add it at the bottom (index 0) so it's under markers
+            // Thêm vòng tròn vào lớp dưới cùng (index 0) để nó nằm dưới các ghim địa điểm
             mapView.getOverlays().add(0, locationCircleOverlay);
         }
-        mapView.invalidate();
+        mapView.invalidate();// Yêu cầu bản đồ vẽ lạ để hiển thị vòng tròn mới hoặc xóa vòng tròn cũ
     }
 
     /** Draws a pin-shaped bitmap: filled circle + triangle tail + white center dot. */
@@ -561,7 +568,7 @@ public class ExploreFragment extends Fragment {
 
     // ─── Sheet UI ─────────────────────────────────────────────────────────────
 
-    private void showResultsList(int count) {
+    private void showResultsList(int count) {// Hàm này hiển thị danh sách các quán ăn tìm thấy trong khung thông tin phía dưới bản đồ. Nó sẽ hiển thị số lượng quán tìm thấy và cập nhật RecyclerView để người dùng có thể vuốt qua lại xem các thẻ quán ăn.
         exploreSheet.setVisibility(View.VISIBLE);
         layoutResultsList.setVisibility(View.VISIBLE);
         layoutDetail.setVisibility(View.GONE);
@@ -569,7 +576,7 @@ public class ExploreFragment extends Fragment {
         resultsAdapter.notifyDataSetChanged();
     }
 
-    private void showDetail(FoodPlace place, boolean showBackButton) {
+    private void showDetail(FoodPlace place, boolean showBackButton) {//    Hàm này hiển thị chi tiết thông tin của một quán ăn cụ thể trong khung thông tin phía dưới bản đồ. Nó sẽ hiển thị tên quán, địa chỉ, đánh giá, trạng thái mở cửa, loại món ăn, mức giá, giờ mở cửa và hình ảnh của quán. Nếu có nhiều quán tìm thấy, nút "Quay lại danh sách" sẽ được hiển thị để người dùng có thể quay lại danh sách các quán.
         exploreSheet.setVisibility(View.VISIBLE);
         layoutResultsList.setVisibility(View.GONE);
         layoutDetail.setVisibility(View.VISIBLE);
@@ -641,43 +648,43 @@ public class ExploreFragment extends Fragment {
         goToMyLocation();
     }
 
-    private void goToMyLocation() {
-        LocationManager lm = (LocationManager)
-                requireContext().getSystemService(Context.LOCATION_SERVICE);
+    private void goToMyLocation() {//   Hàm này sẽ lấy vị trí hiện tại của người dùng và hiển thị nó trên bản đồ. Nếu đã có vị trí gần đây, nó sẽ sử dụng vị trí đó. Nếu không, nó sẽ yêu cầu cập nhật vị trí từ GPS hoặc mạng. Khi nhận được vị trí, nó sẽ gọi onLocationReceived để xử lý.
+        LocationManager lm = (LocationManager) //dịch vụ hệ thống Android dùng để truy cập GPS và vị trí thiết bị
+                requireContext().getSystemService(Context.LOCATION_SERVICE); //yêu cầu Android cung cấp service quản lý vị trí
         if (lm == null) return;
         try {
-            Location last = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            Location last = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);//    Lấy vị trí cuối cùng được biết đến từ GPS
             if (last == null) last = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
 
             if (last != null) {
                 onLocationReceived(new GeoPoint(last.getLatitude(), last.getLongitude()));
             } else {
                 Toast.makeText(getContext(), "Đang lấy vị trí...", Toast.LENGTH_SHORT).show();
-                LocationListener listener = loc -> {
+                LocationListener listener = loc -> { // Nhận tọa độ mới từ cảm biến
                     if (!isAdded()) return;
                     requireActivity().runOnUiThread(() ->
                             onLocationReceived(new GeoPoint(loc.getLatitude(), loc.getLongitude())));
                 };
                 if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                    lm.requestSingleUpdate(LocationManager.GPS_PROVIDER, listener,
+                    lm.requestSingleUpdate(LocationManager.GPS_PROVIDER, listener,//    Yêu cầu cập nhật vị trí một lần từ GPS và gọi listener khi có kết quả
                             requireActivity().getMainLooper());
-                } else if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                    lm.requestSingleUpdate(LocationManager.NETWORK_PROVIDER, listener,
+                } else if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) { // Kiểm tra nếu định vị qua mạng khả dụng
+                    lm.requestSingleUpdate(LocationManager.NETWORK_PROVIDER, listener,//    Yêu cầu cập nhật vị trí một lần từ Mạng (Wifi/Cell) nếu GPS không khả dụng
                             requireActivity().getMainLooper());
                 } else {
-                    Toast.makeText(getContext(), "Vui lòng bật GPS", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "Vui lòng bật GPS", Toast.LENGTH_SHORT).show(); // Thông báo khi tất cả các phương thức định vị đều bị tắt
                 }
             }
         } catch (SecurityException e) {
-            Toast.makeText(getContext(), "Không có quyền truy cập vị trí", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Không có quyền truy cập vị trí", Toast.LENGTH_SHORT).show(); // Xử lý khi người dùng từ chối quyền truy cập
         }
     }
 
-    private void onLocationReceived(GeoPoint point) {
+    private void onLocationReceived(GeoPoint point) { // Xử lý sau khi đã lấy được tọa độ vị trí thành công
         myCurrentLocation = point;
         showMyLocationMarker(point);
-        mapView.getController().animateTo(point);
-        mapView.getController().setZoom(16.0);
+        mapView.getController().animateTo(point); // Di chuyển camera bản đồ đến vị trí hiện tại
+        mapView.getController().setZoom(16.0); // Thiết lập mức phóng to phù hợp để quan sát khu vực xung quanh
         if (!filterNearMe) {
             filterNearMe = true;
             setChipActive(chipNearMe, true);
@@ -685,7 +692,7 @@ public class ExploreFragment extends Fragment {
         refreshMap();
     }
 
-    private void showMyLocationMarker(GeoPoint point) {
+    private void showMyLocationMarker(GeoPoint point) {//   Hàm này hiển thị một ghim đánh dấu vị trí hiện tại của người dùng trên bản đồ. Nếu đã có ghim cũ, nó sẽ xóa ghim đó trước khi thêm ghim mới. Ghim này được đặt ở trung tâm của vị trí hiện tại và có tiêu đề "Vị trí của bạn".
         if (myLocationMarker != null) mapView.getOverlays().remove(myLocationMarker);
         myLocationMarker = new Marker(mapView);
         myLocationMarker.setPosition(point);
@@ -900,5 +907,15 @@ public class ExploreFragment extends Fragment {
     public void onPause() {
         super.onPause();
         if (mapView != null) mapView.onPause();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (mapView != null) {
+            mapView.onDetach();
+        }
+        markersByPlaceId.clear();
+        markerBaseColors.clear();
     }
 }

@@ -116,7 +116,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         setupChatShare();
     }
 
-    private void handleWindowInsets() {
+    private void handleWindowInsets() {//   Điều chỉnh khoảng cách lề (margin) của Toolbar và các biểu tượng chức năng để tránh bị che khuất bởi các thành phần hệ thống như tai thỏ (notch) hoặc thanh trạng thái khi sử dụng chế độ hiển thị tràn viền.
         View appBarLayout = findViewById(R.id.appBarLayout);
         ViewCompat.setOnApplyWindowInsetsListener(appBarLayout, (v, insets) -> {
             int statusBarHeight = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
@@ -219,7 +219,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         tvCartTotal = findViewById(R.id.tvCartTotal);
     }
 
-    private void setupRecyclerViews() {
+    private void setupRecyclerViews() {//   Thiết lập RecyclerView cho danh sách đánh giá và thực đơn, bao gồm việc tạo adapter, thiết lập layout manager và gán adapter cho RecyclerView.
         reviewAdapter = new ReviewAdapter();
         rvReviews.setLayoutManager(new LinearLayoutManager(this));
         rvReviews.setAdapter(reviewAdapter);
@@ -279,7 +279,7 @@ public class FoodPlaceDetailActivity extends AppCompatActivity {
         });
     }
 
-    private void checkStatus() {
+    private void checkStatus() {//   Kiểm tra trạng thái yêu thích và đã ghé thăm của người dùng hiện tại đối với địa điểm hiện tại, và cập nhật giao diện người dùng tương ứng.
         if (currentUserId == null || currentPlace == null) return;
 
         interactionRepository.getFavoriteStatus(currentUserId, currentPlace.getId())

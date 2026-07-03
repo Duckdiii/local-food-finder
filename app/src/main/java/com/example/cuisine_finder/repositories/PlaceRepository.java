@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PlaceRepository {
-    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private final FirebaseFirestore db = FirebaseFirestore.getInstance();// Tham chiếu đến collection "food_places" trong Firestore
     private final CollectionReference placesRef = db.collection("food_places");
 
     // In-memory cache — shared across all PlaceRepository instances (app lifetime)
@@ -19,31 +19,31 @@ public class PlaceRepository {
     private static long cacheTimestamp = 0;
     private static final long CACHE_TTL_MS = 5 * 60 * 1000; // 5 phút
 
-    public interface OnPlacesLoadedCallback {
+    public interface OnPlacesLoadedCallback {// Callback interface để trả về danh sách quán ăn đã được duyệt hoặc thông báo lỗi
         void onLoaded(List<FoodPlace> places);
         void onError();
     }
 
-    public Query getPlacesByUser(String userId) {
+    public Query getPlacesByUser(String userId) {// Lấy danh sách các quán ăn được tạo bởi một người dùng cụ thể dựa trên ID người dùng.
         return placesRef.whereEqualTo("createdBy", userId);
     }
 
-    public Query getApprovedPlaces() {
+    public Query getApprovedPlaces() {// Lấy danh sách tối đa 100 quán ăn đã được phê duyệt (status là "APPROVED").
         return placesRef.whereEqualTo("status", "APPROVED").limit(100);
     }
 
-    public Query getAllPlaces() {
+    public Query getAllPlaces() {// Lấy danh sách tối đa 100 quán ăn bất kể trạng thái phê duyệt.
         return placesRef.limit(100);
     }
 
-    public Task<QuerySnapshot> getPlacesByFoodType(String foodType) {
+    public Task<QuerySnapshot> getPlacesByFoodType(String foodType) {// Tìm kiếm các quán ăn đã phê duyệt dựa trên loại hình ẩm thực (foodType).
         return placesRef
                 .whereEqualTo("status", "APPROVED")
                 .whereEqualTo("foodType", foodType)
                 .get();
     }
 
-    public Task<QuerySnapshot> getTopRatedPlaces(double minRating) {
+    public Task<QuerySnapshot> getTopRatedPlaces(double minRating) {// Lấy danh sách các quán ăn có điểm đánh giá trung bình cao hơn mức tối thiểu, sắp xếp giảm dần.
         return placesRef
                 .whereEqualTo("status", "APPROVED")
                 .whereGreaterThanOrEqualTo("averageRating", minRating)
@@ -52,11 +52,7 @@ public class PlaceRepository {
                 .get();
     }
 
-    /**
-     * Trả về danh sách quán đã được duyệt từ cache (nếu còn hạn) hoặc fetch mới từ Firestore.
-     * Giảm số lần gọi mạng: chỉ fetch lại sau mỗi 5 phút.
-     */
-    public void getCachedApprovedPlaces(OnPlacesLoadedCallback callback) {
+    public void getCachedApprovedPlaces(OnPlacesLoadedCallback callback) {// Lấy danh sách quán ăn đã phê duyệt từ bộ nhớ đệm (cache) nếu còn hiệu lực, nếu không sẽ tải mới từ Firestore và cập nhật cache. Giúp giảm thiểu số lượng truy vấn mạng.
         long now = System.currentTimeMillis();
         if (cachedPlaces != null && (now - cacheTimestamp) < CACHE_TTL_MS) {
             callback.onLoaded(cachedPlaces);

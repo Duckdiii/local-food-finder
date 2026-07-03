@@ -64,13 +64,13 @@ public class AddRestaurantFragment extends Fragment {
         registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
             if (granted) launchCameraCapture();
             else toast("Cần quyền camera để chụp ảnh");
-        });
+        }); // Xử lý yêu cầu quyền truy cập Camera từ người dùng
 
     private final ActivityResultLauncher<String> locationPermLauncher =
         registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
             if (granted) detectLocation();
             else toast("Cần quyền vị trí để tự động điền tọa độ");
-        });
+        }); // Xử lý yêu cầu quyền truy cập Vị trí để lấy tọa độ tự động
 
     // Camera: TakePicture writes to a FileProvider URI
     private Uri cameraFileUri;
@@ -80,25 +80,24 @@ public class AddRestaurantFragment extends Fragment {
                 selectedImageUri = cameraFileUri;
                 showSignboardPreview(selectedImageUri);
             }
-        });
+        });//   Xử lý kết quả sau khi chụp ảnh từ camera và lưu vào URI của FileProvider
 
-    // Gallery: system picker, no storage permission needed
     private final ActivityResultLauncher<String> galleryLauncher =
         registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
             if (uri != null) {
                 selectedImageUri = uri;
                 showSignboardPreview(uri);
             }
-        });
+        });//   Xử lý kết quả sau khi chọn ảnh từ thư viện và lưu vào URI được chọn
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_add_restaurant, container, false);
-    }
+    }// Inflate the layout for this fragment
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) { // Khởi tạo các thành phần giao diện và thiết lập sự kiện sau khi View đã được tạo
         super.onViewCreated(view, savedInstanceState);
         bindViews(view);
         wireListeners(view);
@@ -107,7 +106,7 @@ public class AddRestaurantFragment extends Fragment {
 
     // ─── View binding ─────────────────────────────────────────────────────────
 
-    private void bindViews(View view) {
+    private void bindViews(View view) { // Ánh xạ các View từ layout XML vào các biến thành viên trong Java
         ivSignboard       = view.findViewById(R.id.ivSignboard);
         tvCameraHint      = view.findViewById(R.id.tvCameraHint);
         etName            = view.findViewById(R.id.etName);
@@ -124,14 +123,16 @@ public class AddRestaurantFragment extends Fragment {
         btnSubmit         = view.findViewById(R.id.btnSubmit);
     }
 
-    private void wireListeners(View view) {
+    private void wireListeners(View view) { // Thiết lập các sự kiện lắng nghe tương tác của người dùng (Click, Change,...)
+        //  Back button → pop back stack
         view.findViewById(R.id.btnBack).setOnClickListener(v ->
             requireActivity().getSupportFragmentManager().popBackStack());
 
-        // Tap camera panel → open gallery
+        //  Camera panel click → launch gallery picker
         view.findViewById(R.id.frameCameraPanel).setOnClickListener(v ->
             galleryLauncher.launch("image/*"));
 
+        //  Camera button click → check permission and launch camera
         view.findViewById(R.id.btnCapture).setOnClickListener(v -> {
             if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -141,44 +142,49 @@ public class AddRestaurantFragment extends Fragment {
             }
         });
 
+        //  Gallery button click → launch gallery picker
         view.findViewById(R.id.btnGallery).setOnClickListener(v ->
             galleryLauncher.launch("image/*"));
 
+        //  Detect location button click → request GPS coordinates
         view.findViewById(R.id.btnDetectLocation).setOnClickListener(v ->
             requestLocationExplicit());
 
+        //  Time selection clicks → show time picker dialogs
         tvOpenTime.setOnClickListener(v -> showTimePicker(true));
         tvCloseTime.setOnClickListener(v -> showTimePicker(false));
 
+        //  Price range chips → toggle selection state
         btnPriceCheap.setOnClickListener(v -> togglePrice("CHEAP"));
         btnPriceMedium.setOnClickListener(v -> togglePrice("MEDIUM"));
         btnPriceExpensive.setOnClickListener(v -> togglePrice("EXPENSIVE"));
 
+        //  Submit button click → validate and upload data to Firebase
         btnSubmit.setOnClickListener(v -> submitForm());
     }
 
     // ─── Camera ───────────────────────────────────────────────────────────────
 
-    private void launchCameraCapture() {
+    private void launchCameraCapture() {//  Kiểm tra quyền truy cập camera và khởi động camera để chụp ảnh, lưu vào FileProvider URI
         try {
-            File imageFile = createTempImageFile();
-            cameraFileUri = FileProvider.getUriForFile(
+            File imageFile = createTempImageFile(); // Chuẩn bị tệp tin tạm để lưu trữ ảnh sắp chụp
+            cameraFileUri = FileProvider.getUriForFile( // Tạo URI an toàn từ FileProvider để chia sẻ với ứng dụng camera
                 requireContext(),
                 requireContext().getPackageName() + ".provider",
                 imageFile);
-            cameraLauncher.launch(cameraFileUri);
+            cameraLauncher.launch(cameraFileUri);// Mở ứng dụng camera để chụp ảnh và lưu vào đường dẫn đã tạo
         } catch (IOException e) {
             toast("Không thể khởi động camera");
         }
     }
 
-    private File createTempImageFile() throws IOException {
+    private File createTempImageFile() throws IOException { //  Tạo một tệp tin tạm thời để lưu trữ ảnh chụp từ camera, với tên duy nhất dựa trên timestamp
         String ts = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
         File dir = requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         return File.createTempFile("SIGN_" + ts, ".jpg", dir);
     }
 
-    private void showSignboardPreview(Uri uri) {
+    private void showSignboardPreview(Uri uri) {//  Hiển thị ảnh biển hiệu đã chọn hoặc chụp lên ImageView, ẩn hướng dẫn camera và sử dụng Glide để tải ảnh từ URI
         ivSignboard.setVisibility(View.VISIBLE);
         tvCameraHint.setVisibility(View.GONE);
         Glide.with(this).load(uri).centerCrop().into(ivSignboard);
@@ -186,14 +192,14 @@ public class AddRestaurantFragment extends Fragment {
 
     // ─── Location ─────────────────────────────────────────────────────────────
 
-    private void requestLocationSilently() {
+    private void requestLocationSilently() { // Kiểm tra quyền truy cập vị trí mà không yêu cầu người dùng, nếu đã được cấp thì tự động lấy tọa độ GPS
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             detectLocation();
         }
     }
 
-    private void requestLocationExplicit() {
+    private void requestLocationExplicit() { // Yêu cầu vị trí khi người dùng nhấn nút, kiểm tra quyền và yêu cầu cấp quyền nếu cần thiết
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             locationPermLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
@@ -202,7 +208,7 @@ public class AddRestaurantFragment extends Fragment {
         }
     }
 
-    private void detectLocation() {
+    private void detectLocation() {//   Lấy tọa độ GPS hiện tại của thiết bị bằng LocationManager, ưu tiên GPS, sau đó là Network và Passive. Nếu không có vị trí, yêu cầu cập nhật một lần từ Network Provider. Cập nhật giao diện với tọa độ hoặc thông báo lỗi nếu không thể lấy vị trí.
         try {
             LocationManager lm = (LocationManager)
                 requireContext().getSystemService(Context.LOCATION_SERVICE);
@@ -230,7 +236,7 @@ public class AddRestaurantFragment extends Fragment {
         }
     }
 
-    private void applyLocation(double lat, double lon) {
+    private void applyLocation(double lat, double lon) {//  Cập nhật tọa độ GPS đã lấy được vào các biến thành viên, đánh dấu rằng đã có vị trí và hiển thị tọa độ trên TextView theo định dạng độ thập phân với 6 chữ số sau dấu phẩy.
         selectedLat = lat;
         selectedLon = lon;
         hasLocation = true;
@@ -286,7 +292,7 @@ public class AddRestaurantFragment extends Fragment {
     private void submitForm() {
         if (isSubmitting) return;
 
-        String name = etName.getText().toString().trim();
+        String name = etName.getText().toString().trim();// Lấy tên quán từ EditText và kiểm tra xem có rỗng hay không, nếu rỗng thì hiển thị thông báo và yêu cầu người dùng nhập tên quán
         if (name.isEmpty()) {
             toast("Vui lòng nhập tên quán");
             etName.requestFocus();
@@ -296,7 +302,7 @@ public class AddRestaurantFragment extends Fragment {
         isSubmitting = true;
         btnSubmit.setEnabled(false);
 
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();//   Lấy người dùng hiện tại từ Firebase Authentication để xác định ai đang gửi đề xuất quán ăn. Nếu người dùng chưa đăng nhập, currentUser sẽ là null.
         if (selectedImageUri != null) {
             uploadImageThenSubmit(name, currentUser);
         } else {
@@ -304,7 +310,7 @@ public class AddRestaurantFragment extends Fragment {
         }
     }
 
-    private void uploadImageThenSubmit(String name, @Nullable FirebaseUser user) {
+    private void uploadImageThenSubmit(String name, @Nullable FirebaseUser user) {//    Tải ảnh biển hiệu lên Firebase Storage và sau đó lưu thông tin đề xuất quán ăn vào Firestore. Nếu tải ảnh thất bại, lưu ảnh vào bộ nhớ trong của thiết bị và sử dụng đường dẫn local để lưu thông tin đề xuất.
         String uid  = user != null ? user.getUid() : "anon";
         String path = "community_posts/place_submissions/" + System.currentTimeMillis() + "_" + uid + ".jpg";
         StorageReference ref = FirebaseStorage.getInstance().getReference(path);

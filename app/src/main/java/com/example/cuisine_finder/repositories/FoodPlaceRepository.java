@@ -10,13 +10,13 @@ public class FoodPlaceRepository {
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final CollectionReference foodPlacesRef = db.collection("food_places");
 
-    public Task<QuerySnapshot> getApprovedPlaces() {
+    public Task<QuerySnapshot> getApprovedPlaces() {//  Lấy danh sách các quán ăn đã được phê duyệt (status là "APPROVED").
         return foodPlacesRef
                 .whereEqualTo("status", "APPROVED")
                 .get();
     }
 
-    public Task<QuerySnapshot> searchPlaces(String query) {
+    public Task<QuerySnapshot> searchPlaces(String query) {//  Tìm kiếm các quán ăn theo tên sử dụng phương pháp so khớp chuỗi bắt đầu bằng từ khóa.
         // Simple search by name (requires exact match or startAt/endAt for partial)
         return foodPlacesRef.orderBy("name")
                 .startAt(query)
@@ -25,6 +25,7 @@ public class FoodPlaceRepository {
     }
 
     public Query getFilteredPlaces(String query, String foodType, String priceRange, double minRating) {
+        //  Tạo truy vấn lọc danh sách quán ăn dựa trên từ khóa tìm kiếm, loại hình ẩm thực, mức giá và điểm đánh giá tối thiểu.
         Query q = foodPlacesRef.orderBy("name").startAt(query).endAt(query + "\uf8ff");
         
         if (foodType != null && !foodType.isEmpty() && !foodType.equals("Tất cả")) {
