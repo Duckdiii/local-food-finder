@@ -17,3 +17,4 @@ local.properties
 app/google-services.json
 app/src/main/java/com/example/cuisine_finder/utils/FirebaseUtils.java
 Part2.md
+serviceAccountKey.json

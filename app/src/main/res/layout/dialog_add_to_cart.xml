@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet"
+    android:padding="24dp">
+
+    <View
+        android:id="@+id/viewHandle"
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_marginBottom="18dp"
+        android:background="@color/border_light"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardItemImage"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/viewHandle">
+
+        <ImageView
+            android:id="@+id/ivDialogItemImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:src="@drawable/bg_image_placeholder" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <TextView
+        android:id="@+id/tvDialogItemName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:text="Bún bò đặc biệt"
+        android:textColor="@color/text_dark"
+        android:textSize="17sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/cardItemImage"
+        app:layout_constraintTop_toTopOf="@id/cardItemImage" />
+
+    <TextView
+        android:id="@+id/tvDialogItemPrice"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_marginTop="6dp"
+        android:text="50.000đ"
+        android:textColor="@color/orange_main"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toEndOf="@id/cardItemImage"
+        app:layout_constraintTop_toBottomOf="@id/tvDialogItemName" />
+
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/barrierHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="bottom"
+        app:constraint_referenced_ids="cardItemImage,tvDialogItemPrice" />
+
+    <TextView
+        android:id="@+id/tvQuantityLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Số lượng"
+        android:textColor="@color/text_dark"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/barrierHeader" />
+
+    <LinearLayout
+        android:id="@+id/layoutQuantityRow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvQuantityLabel">
+
+        <TextView
+            android:id="@+id/btnDialogDecrease"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_badge_soft"
+            android:gravity="center"
+            android:text="-"
+            android:textColor="@color/orange_main"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvDialogQuantity"
+            android:layout_width="48dp"
+            android:layout_height="36dp"
+            android:gravity="center"
+            android:text="1"
+            android:textColor="@color/text_dark"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnDialogIncrease"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_badge_soft"
+            android:gravity="center"
+            android:text="+"
+            android:textColor="@color/orange_main"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvNoteLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="Ghi chú cho món này (tùy chọn)"
+        android:textColor="@color/text_dark"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layoutQuantityRow" />
+
+    <EditText
+        android:id="@+id/etDialogNote"
+        android:layout_width="0dp"
+        android:layout_height="52dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_search"
+        android:hint="Ví dụ: không hành, ít cay"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:textColor="@color/text_dark"
+        android:textColorHint="@color/text_light"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvNoteLabel" />
+
+    <TextView
+        android:id="@+id/btnDialogAddToCart"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:layout_marginTop="22dp"
+        android:background="@drawable/bg_orange_button"
+        android:gravity="center"
+        android:text="Thêm vào giỏ hàng · 50.000đ"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/etDialogNote" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
